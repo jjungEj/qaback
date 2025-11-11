@@ -1,47 +1,63 @@
 package vaatz.stereotypesdb.qa.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import vaatz.stereotypesdb.qa.domain.Pipeline;
+import vaatz.stereotypesdb.qa.dto.PipelineRequest;
+import vaatz.stereotypesdb.qa.service.PipelineService;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import javax.validation.Valid;
 import java.util.List;
-import java.util.Map;
 
+@Validated
 @RestController
 @RequestMapping("/api/pipelines")
 public class PipelineController {
 
+    private final PipelineService pipelineService;
+
+    public PipelineController(PipelineService pipelineService) {
+        this.pipelineService = pipelineService;
+    }
+
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getPipelines() {
-        List<Map<String, Object>> pipelines = new ArrayList<>();
-        // TODO: 실제 파이프라인 데이터 조회 로직 구현
-        return ResponseEntity.ok(pipelines);
+    public ResponseEntity<List<Pipeline>> getPipelines(@RequestParam(required = false) Long modelId) {
+        if (modelId != null) {
+            return ResponseEntity.ok(pipelineService.getByModel(modelId));
+        }
+        return ResponseEntity.ok(pipelineService.getAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Pipeline> getPipeline(@PathVariable Long id) {
+        return ResponseEntity.ok(pipelineService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createPipeline(@RequestBody Map<String, Object> pipeline) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Pipeline created successfully");
-        response.put("pipeline", pipeline);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Pipeline> createPipeline(@Valid @RequestBody PipelineRequest request) {
+        Pipeline created = pipelineService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updatePipeline(@PathVariable Long id, @RequestBody Map<String, Object> pipeline) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Pipeline updated successfully");
-        response.put("id", id);
-        response.put("pipeline", pipeline);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Pipeline> updatePipeline(@PathVariable Long id, @Valid @RequestBody PipelineRequest request) {
+        return ResponseEntity.ok(pipelineService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deletePipeline(@PathVariable Long id) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Pipeline deleted successfully");
-        response.put("id", id);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Void> deletePipeline(@PathVariable Long id) {
+        pipelineService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
 
