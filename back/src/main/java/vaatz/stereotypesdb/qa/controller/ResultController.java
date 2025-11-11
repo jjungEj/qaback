@@ -16,7 +16,7 @@ import vaatz.stereotypesdb.qa.domain.Result;
 import vaatz.stereotypesdb.qa.dto.ResultRequest;
 import vaatz.stereotypesdb.qa.service.ResultService;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 
 @Validated
