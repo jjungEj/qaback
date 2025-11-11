@@ -1,47 +1,59 @@
 package vaatz.stereotypesdb.qa.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import vaatz.stereotypesdb.qa.domain.Model;
+import vaatz.stereotypesdb.qa.dto.ModelRequest;
+import vaatz.stereotypesdb.qa.service.ModelService;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import javax.validation.Valid;
 import java.util.List;
-import java.util.Map;
 
+@Validated
 @RestController
 @RequestMapping("/api/models")
 public class ModelController {
 
+    private final ModelService modelService;
+
+    public ModelController(ModelService modelService) {
+        this.modelService = modelService;
+    }
+
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getModels() {
-        List<Map<String, Object>> models = new ArrayList<>();
-        // TODO: 실제 모델 데이터 조회 로직 구현
-        return ResponseEntity.ok(models);
+    public ResponseEntity<List<Model>> getModels() {
+        return ResponseEntity.ok(modelService.getAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Model> getModel(@PathVariable Long id) {
+        return ResponseEntity.ok(modelService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createModel(@RequestBody Map<String, Object> model) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Model created successfully");
-        response.put("model", model);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Model> createModel(@Valid @RequestBody ModelRequest request) {
+        Model created = modelService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updateModel(@PathVariable Long id, @RequestBody Map<String, Object> model) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Model updated successfully");
-        response.put("id", id);
-        response.put("model", model);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Model> updateModel(@PathVariable Long id, @Valid @RequestBody ModelRequest request) {
+        return ResponseEntity.ok(modelService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteModel(@PathVariable Long id) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Model deleted successfully");
-        response.put("id", id);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Void> deleteModel(@PathVariable Long id) {
+        modelService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
 
