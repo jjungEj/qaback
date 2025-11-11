@@ -1,6 +1,6 @@
 package vaatz.stereotypesdb.qa.dto;
 
-import jakarta.validation.constraints.NotNull;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 public class ResultRequest {
