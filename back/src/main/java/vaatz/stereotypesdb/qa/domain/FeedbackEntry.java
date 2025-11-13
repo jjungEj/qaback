@@ -1,7 +1,8 @@
 package vaatz.stereotypesdb.qa.domain;
 
-import java.time.LocalDateTime;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -12,7 +13,6 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import java.time.LocalDateTime;
@@ -20,29 +20,34 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "pipelines")
-public class Pipeline {
+@Table(name = "feedback_entries")
+public class FeedbackEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @Column(nullable = false, length = 255)
+    private String documentName;
+
+    @Column(nullable = false, length = 50)
+    private String logType;
+
+    @Column(nullable = false, length = 1000)
+    private String feedback;
 
     @Column(length = 50)
     private String status;
-
-    @Lob
-    private String configuration;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "model_id")
-    private Model model;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processing_result_id")
+    private ProcessingResult processingResult;
 }
+
