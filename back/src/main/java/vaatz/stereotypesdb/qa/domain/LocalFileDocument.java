@@ -1,7 +1,7 @@
 package vaatz.stereotypesdb.qa.domain;
 
-import java.time.LocalDateTime;
-
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,21 +16,29 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "models")
-public class Model {
+@Table(name = "local_file_documents")
+public class LocalFileDocument {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @Column(nullable = false, length = 255)
+    private String fileName;
 
-    @Column(length = 500)
-    private String description;
+    private Long fileSize;
 
     @Column(length = 50)
-    private String version;
+    private String fileType;
+
+    @Column(nullable = false, length = 50)
+    private String status;
+
+    private LocalDateTime queuedAt;
+
+    private LocalDateTime completedAt;
+
+    private Boolean deletable;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -38,3 +46,4 @@ public class Model {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
+
