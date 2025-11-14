@@ -1,6 +1,6 @@
 package vaatz.stereotypesdb.qa.dto;
 
-public class ProcessingResultSummaryResponse {
+public class ResultSummaryResponse {
 
     private Long totalDocuments;
     private Long completedDocuments;

@@ -1,21 +1,24 @@
 package vaatz.stereotypesdb.qa.dto;
 
-import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
-public class PipelineHistoryRequest {
+public class PipelineResponse {
 
-    @NotBlank(message = "문서명은 필수입니다.")
+    private Long id;
     private String documentName;
-
-    @NotBlank(message = "상태는 필수입니다.")
     private String status;
-
     private LocalDateTime startedAt;
-
     private LocalDateTime finishedAt;
-
+    private Long durationSeconds;
     private String errorMessage;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getDocumentName() {
         return documentName;
@@ -47,6 +50,14 @@ public class PipelineHistoryRequest {
 
     public void setFinishedAt(LocalDateTime finishedAt) {
         this.finishedAt = finishedAt;
+    }
+
+    public Long getDurationSeconds() {
+        return durationSeconds;
+    }
+
+    public void setDurationSeconds(Long durationSeconds) {
+        this.durationSeconds = durationSeconds;
     }
 
     public String getErrorMessage() {

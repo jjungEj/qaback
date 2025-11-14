@@ -3,7 +3,7 @@ package vaatz.stereotypesdb.qa.dto;
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
-public class SystemStatusSnapshotRequest {
+public class SystemStatusRequest {
 
     @NotBlank(message = "AI DB 상태는 필수입니다.")
     private String aiDbStatus;

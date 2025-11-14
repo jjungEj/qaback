@@ -4,84 +4,84 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import vaatz.stereotypesdb.qa.domain.FeedbackEntry;
-import vaatz.stereotypesdb.qa.domain.ProcessingResult;
-import vaatz.stereotypesdb.qa.dto.FeedbackEntryRequest;
-import vaatz.stereotypesdb.qa.dto.FeedbackEntryResponse;
-import vaatz.stereotypesdb.qa.repository.FeedbackEntryRepository;
-import vaatz.stereotypesdb.qa.repository.ProcessingResultRepository;
+import vaatz.stereotypesdb.qa.domain.Feedback;
+import vaatz.stereotypesdb.qa.domain.Result;
+import vaatz.stereotypesdb.qa.dto.FeedbackRequest;
+import vaatz.stereotypesdb.qa.dto.FeedbackResponse;
+import vaatz.stereotypesdb.qa.repository.FeedbackRepository;
+import vaatz.stereotypesdb.qa.repository.ResultRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class FeedbackEntryService {
+public class FeedbackService {
 
-    private final FeedbackEntryRepository feedbackEntryRepository;
-    private final ProcessingResultRepository processingResultRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final ResultRepository resultRepository;
 
-    public FeedbackEntryService(FeedbackEntryRepository feedbackEntryRepository,
-                                ProcessingResultRepository processingResultRepository) {
-        this.feedbackEntryRepository = feedbackEntryRepository;
-        this.processingResultRepository = processingResultRepository;
+    public FeedbackService(FeedbackRepository feedbackRepository,
+                           ResultRepository resultRepository) {
+        this.feedbackRepository = feedbackRepository;
+        this.resultRepository = resultRepository;
     }
 
-    public List<FeedbackEntryResponse> getAll(Long processingResultId) {
-        List<FeedbackEntry> entries;
-        if (processingResultId != null) {
-            entries = feedbackEntryRepository.findByProcessingResultId(processingResultId);
+    public List<FeedbackResponse> getAll(Long resultId) {
+        List<Feedback> entries;
+        if (resultId != null) {
+            entries = feedbackRepository.findByResultId(resultId);
         } else {
-            entries = feedbackEntryRepository.findAll();
+            entries = feedbackRepository.findAll();
         }
         return entries.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
-    public FeedbackEntryResponse getById(Long id) {
-        FeedbackEntry entry = feedbackEntryRepository.findById(id)
+    public FeedbackResponse getById(Long id) {
+        Feedback entry = feedbackRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 피드백을 찾을 수 없습니다."));
         return toResponse(entry);
     }
 
-    public FeedbackEntryResponse create(FeedbackEntryRequest request) {
-        ProcessingResult result = processingResultRepository.findById(request.getProcessingResultId())
+    public FeedbackResponse create(FeedbackRequest request) {
+        Result result = resultRepository.findById(request.getResultId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "연결할 결과를 찾을 수 없습니다."));
-        FeedbackEntry entry = new FeedbackEntry();
+        Feedback entry = new Feedback();
         applyRequest(entry, request);
-        entry.setProcessingResult(result);
-        FeedbackEntry saved = feedbackEntryRepository.save(entry);
+        entry.setResult(result);
+        Feedback saved = feedbackRepository.save(entry);
         applyResultUpdate(result, request);
         return toResponse(saved);
     }
 
-    public FeedbackEntryResponse update(Long id, FeedbackEntryRequest request) {
-        FeedbackEntry entry = feedbackEntryRepository.findById(id)
+    public FeedbackResponse update(Long id, FeedbackRequest request) {
+        Feedback entry = feedbackRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 피드백을 찾을 수 없습니다."));
-        ProcessingResult result = processingResultRepository.findById(request.getProcessingResultId())
+        Result result = resultRepository.findById(request.getResultId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "연결할 결과를 찾을 수 없습니다."));
         applyRequest(entry, request);
-        entry.setProcessingResult(result);
-        FeedbackEntry saved = feedbackEntryRepository.save(entry);
+        entry.setResult(result);
+        Feedback saved = feedbackRepository.save(entry);
         applyResultUpdate(result, request);
         return toResponse(saved);
     }
 
     public void delete(Long id) {
-        FeedbackEntry entry = feedbackEntryRepository.findById(id)
+        Feedback entry = feedbackRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 피드백을 찾을 수 없습니다."));
-        feedbackEntryRepository.delete(entry);
+        feedbackRepository.delete(entry);
     }
 
-    private void applyRequest(FeedbackEntry entry, FeedbackEntryRequest request) {
+    private void applyRequest(Feedback entry, FeedbackRequest request) {
         entry.setDocumentName(request.getDocumentName());
         entry.setLogType(request.getLogType());
         entry.setFeedback(request.getFeedback());
         entry.setStatus(request.getStatus());
     }
 
-    private void applyResultUpdate(ProcessingResult result, FeedbackEntryRequest request) {
+    private void applyResultUpdate(Result result, FeedbackRequest request) {
         boolean dirty = false;
         if (request.getUpdatedResultStatus() != null) {
             result.setStatus(request.getUpdatedResultStatus());
@@ -92,12 +92,12 @@ public class FeedbackEntryService {
             dirty = true;
         }
         if (dirty) {
-            processingResultRepository.save(result);
+            resultRepository.save(result);
         }
     }
 
-    private FeedbackEntryResponse toResponse(FeedbackEntry entry) {
-        FeedbackEntryResponse response = new FeedbackEntryResponse();
+    private FeedbackResponse toResponse(Feedback entry) {
+        FeedbackResponse response = new FeedbackResponse();
         response.setId(entry.getId());
         response.setDocumentName(entry.getDocumentName());
         response.setLogType(entry.getLogType());

@@ -1,6 +1,6 @@
 package vaatz.stereotypesdb.qa.dto;
 
-public class LocalFileQueueSummaryResponse {
+public class LocalFileSummaryResponse {
 
     private Long totalDocuments;
     private Long pendingDocuments;

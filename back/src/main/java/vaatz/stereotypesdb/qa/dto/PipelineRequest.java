@@ -1,26 +1,28 @@
 package vaatz.stereotypesdb.qa.dto;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 
 public class PipelineRequest {
 
-    @NotBlank(message = "파이프라인 이름은 비워둘 수 없습니다.")
-    private String name;
+    @NotBlank(message = "문서명은 필수입니다.")
+    private String documentName;
 
+    @NotBlank(message = "상태는 필수입니다.")
     private String status;
 
-    private String configuration;
+    private LocalDateTime startedAt;
 
-    @NotNull(message = "연결할 모델 ID는 필수입니다.")
-    private Long modelId;
+    private LocalDateTime finishedAt;
 
-    public String getName() {
-        return name;
+    private String errorMessage;
+
+    public String getDocumentName() {
+        return documentName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setDocumentName(String documentName) {
+        this.documentName = documentName;
     }
 
     public String getStatus() {
@@ -31,19 +33,28 @@ public class PipelineRequest {
         this.status = status;
     }
 
-    public String getConfiguration() {
-        return configuration;
+    public LocalDateTime getStartedAt() {
+        return startedAt;
     }
 
-    public void setConfiguration(String configuration) {
-        this.configuration = configuration;
+    public void setStartedAt(LocalDateTime startedAt) {
+        this.startedAt = startedAt;
     }
 
-    public Long getModelId() {
-        return modelId;
+    public LocalDateTime getFinishedAt() {
+        return finishedAt;
     }
 
-    public void setModelId(Long modelId) {
-        this.modelId = modelId;
+    public void setFinishedAt(LocalDateTime finishedAt) {
+        this.finishedAt = finishedAt;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 }
+

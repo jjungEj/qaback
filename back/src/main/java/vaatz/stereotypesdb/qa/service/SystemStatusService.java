@@ -2,11 +2,11 @@ package vaatz.stereotypesdb.qa.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vaatz.stereotypesdb.qa.domain.SystemStatusSnapshot;
-import vaatz.stereotypesdb.qa.dto.SystemStatusSnapshotRequest;
+import vaatz.stereotypesdb.qa.domain.SystemStatus;
+import vaatz.stereotypesdb.qa.dto.SystemStatusRequest;
 import vaatz.stereotypesdb.qa.dto.SystemStatusSummaryResponse;
-import vaatz.stereotypesdb.qa.repository.ProcessingResultRepository;
-import vaatz.stereotypesdb.qa.repository.SystemStatusSnapshotRepository;
+import vaatz.stereotypesdb.qa.repository.ResultRepository;
+import vaatz.stereotypesdb.qa.repository.SystemStatusRepository;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -16,24 +16,24 @@ import java.time.LocalDateTime;
 @Transactional
 public class SystemStatusService {
 
-    private final SystemStatusSnapshotRepository snapshotRepository;
-    private final ProcessingResultRepository processingResultRepository;
+    private final SystemStatusRepository systemStatusRepository;
+    private final ResultRepository resultRepository;
 
-    public SystemStatusService(SystemStatusSnapshotRepository snapshotRepository,
-                               ProcessingResultRepository processingResultRepository) {
-        this.snapshotRepository = snapshotRepository;
-        this.processingResultRepository = processingResultRepository;
+    public SystemStatusService(SystemStatusRepository systemStatusRepository,
+                               ResultRepository resultRepository) {
+        this.systemStatusRepository = systemStatusRepository;
+        this.resultRepository = resultRepository;
     }
 
     public SystemStatusSummaryResponse getSummary() {
         SystemStatusSummaryResponse response = new SystemStatusSummaryResponse();
-        SystemStatusSnapshot snapshot = snapshotRepository.findTopByOrderByRecordedAtDesc().orElse(null);
+        SystemStatus snapshot = systemStatusRepository.findTopByOrderByRecordedAtDesc().orElse(null);
 
-        long totalDocuments = processingResultRepository.count();
+        long totalDocuments = resultRepository.count();
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
-        Long todayCount = processingResultRepository.countByStartedAtBetween(startOfDay, endOfDay);
+        Long todayCount = resultRepository.countByStartedAtBetween(startOfDay, endOfDay);
 
         response.setTotalDocuments(totalDocuments);
         response.setDocumentsProcessedToday(todayCount);
@@ -61,13 +61,13 @@ public class SystemStatusService {
         return response;
     }
 
-    public SystemStatusSnapshot createSnapshot(SystemStatusSnapshotRequest request) {
-        SystemStatusSnapshot snapshot = new SystemStatusSnapshot();
+    public SystemStatus create(SystemStatusRequest request) {
+        SystemStatus snapshot = new SystemStatus();
         snapshot.setAiDbStatus(request.getAiDbStatus());
         snapshot.setHelpyStatus(request.getHelpyStatus());
         snapshot.setOverallStatus(request.getOverallStatus());
         snapshot.setUptimeSince(request.getUptimeSince());
-        return snapshotRepository.save(snapshot);
+        return systemStatusRepository.save(snapshot);
     }
 }
 

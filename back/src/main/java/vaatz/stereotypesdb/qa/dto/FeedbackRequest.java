@@ -2,21 +2,26 @@ package vaatz.stereotypesdb.qa.dto;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 
 public class FeedbackRequest {
 
     @NotNull(message = "연결할 결과 ID는 필수입니다.")
     private Long resultId;
 
-    @NotBlank(message = "작성자 이름은 비워둘 수 없습니다.")
-    private String author;
+    @NotBlank(message = "문서명은 필수입니다.")
+    private String documentName;
 
-    @NotBlank(message = "피드백 내용은 비워둘 수 없습니다.")
-    @Size(max = 500, message = "피드백은 최대 500자까지 입력할 수 있습니다.")
-    private String comment;
+    @NotBlank(message = "로그 타입은 필수입니다.")
+    private String logType;
 
-    private Integer rating;
+    @NotBlank(message = "피드백 내용은 필수입니다.")
+    private String feedback;
+
+    private String status;
+
+    private String updatedResultStatus;
+
+    private String updatedMetadata;
 
     public Long getResultId() {
         return resultId;
@@ -26,27 +31,52 @@ public class FeedbackRequest {
         this.resultId = resultId;
     }
 
-    public String getAuthor() {
-        return author;
+    public String getDocumentName() {
+        return documentName;
     }
 
-    public void setAuthor(String author) {
-        this.author = author;
+    public void setDocumentName(String documentName) {
+        this.documentName = documentName;
     }
 
-    public String getComment() {
-        return comment;
+    public String getLogType() {
+        return logType;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
+    public void setLogType(String logType) {
+        this.logType = logType;
     }
 
-    public Integer getRating() {
-        return rating;
+    public String getFeedback() {
+        return feedback;
     }
 
-    public void setRating(Integer rating) {
-        this.rating = rating;
+    public void setFeedback(String feedback) {
+        this.feedback = feedback;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getUpdatedResultStatus() {
+        return updatedResultStatus;
+    }
+
+    public void setUpdatedResultStatus(String updatedResultStatus) {
+        this.updatedResultStatus = updatedResultStatus;
+    }
+
+    public String getUpdatedMetadata() {
+        return updatedMetadata;
+    }
+
+    public void setUpdatedMetadata(String updatedMetadata) {
+        this.updatedMetadata = updatedMetadata;
     }
 }
+

@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import vaatz.stereotypesdb.qa.dto.LocalFileDocumentRequest;
-import vaatz.stereotypesdb.qa.dto.LocalFileDocumentResponse;
-import vaatz.stereotypesdb.qa.dto.LocalFileQueueSummaryResponse;
-import vaatz.stereotypesdb.qa.service.LocalFileDocumentService;
+import vaatz.stereotypesdb.qa.dto.LocalFileRequest;
+import vaatz.stereotypesdb.qa.dto.LocalFileResponse;
+import vaatz.stereotypesdb.qa.dto.LocalFileSummaryResponse;
+import vaatz.stereotypesdb.qa.service.LocalFileService;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -24,42 +24,42 @@ import java.util.List;
 @RequestMapping("/api/local-files")
 public class LocalFileController {
 
-    private final LocalFileDocumentService localFileDocumentService;
+    private final LocalFileService localFileService;
 
-    public LocalFileController(LocalFileDocumentService localFileDocumentService) {
-        this.localFileDocumentService = localFileDocumentService;
+    public LocalFileController(LocalFileService localFileService) {
+        this.localFileService = localFileService;
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<LocalFileQueueSummaryResponse> getSummary() {
-        return ResponseEntity.ok(localFileDocumentService.getSummary());
+    public ResponseEntity<LocalFileSummaryResponse> getSummary() {
+        return ResponseEntity.ok(localFileService.getSummary());
     }
 
     @GetMapping
-    public ResponseEntity<List<LocalFileDocumentResponse>> getFiles() {
-        return ResponseEntity.ok(localFileDocumentService.getAll());
+    public ResponseEntity<List<LocalFileResponse>> getFiles() {
+        return ResponseEntity.ok(localFileService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LocalFileDocumentResponse> getFile(@PathVariable Long id) {
-        return ResponseEntity.ok(localFileDocumentService.getById(id));
+    public ResponseEntity<LocalFileResponse> getFile(@PathVariable Long id) {
+        return ResponseEntity.ok(localFileService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<LocalFileDocumentResponse> createFile(@Valid @RequestBody LocalFileDocumentRequest request) {
-        LocalFileDocumentResponse created = localFileDocumentService.create(request);
+    public ResponseEntity<LocalFileResponse> createFile(@Valid @RequestBody LocalFileRequest request) {
+        LocalFileResponse created = localFileService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LocalFileDocumentResponse> updateFile(@PathVariable Long id,
-                                                                @Valid @RequestBody LocalFileDocumentRequest request) {
-        return ResponseEntity.ok(localFileDocumentService.update(id, request));
+    public ResponseEntity<LocalFileResponse> updateFile(@PathVariable Long id,
+                                                        @Valid @RequestBody LocalFileRequest request) {
+        return ResponseEntity.ok(localFileService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFile(@PathVariable Long id) {
-        localFileDocumentService.delete(id);
+        localFileService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

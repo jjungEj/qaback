@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "system_status_snapshots")
-public class SystemStatusSnapshot {
+public class SystemStatus {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

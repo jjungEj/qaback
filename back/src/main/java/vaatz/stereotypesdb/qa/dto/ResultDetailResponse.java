@@ -1,46 +1,29 @@
 package vaatz.stereotypesdb.qa.dto;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
-public class ProcessingResultRequest {
+public class ResultDetailResponse {
 
-    @NotNull(message = "연결할 파이프라인 기록 ID는 필수입니다.")
-    private Long pipelineHistoryId;
-
-    @NotBlank(message = "문서명은 필수입니다.")
+    private Long id;
     private String documentName;
-
-    @NotBlank(message = "상태는 필수입니다.")
     private String status;
-
     private Long actualFileSize;
-
     private Long transferredFileSize;
-
     private LocalDateTime startedAt;
-
     private LocalDateTime finishedAt;
-
     private String originalFileName;
-
     private Long originalFileSize;
-
     private Long convertedFileSize;
-
     private String originalViewerUri;
-
     private String htmlRenderUri;
-
     private String metadata;
 
-    public Long getPipelineHistoryId() {
-        return pipelineHistoryId;
+    public Long getId() {
+        return id;
     }
 
-    public void setPipelineHistoryId(Long pipelineHistoryId) {
-        this.pipelineHistoryId = pipelineHistoryId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getDocumentName() {
