@@ -1,8 +1,11 @@
 package vaatz.stereotypesdb.qa.dto;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ResultRequest {
 
@@ -34,6 +37,9 @@ public class ResultRequest {
     private String htmlRenderUri;
 
     private String metadata;
+
+    @Valid
+    private List<ResultSheetRequest> sheets = new ArrayList<>();
 
     public Long getPipelineId() {
         return pipelineId;
@@ -137,6 +143,14 @@ public class ResultRequest {
 
     public void setMetadata(String metadata) {
         this.metadata = metadata;
+    }
+
+    public List<ResultSheetRequest> getSheets() {
+        return sheets;
+    }
+
+    public void setSheets(List<ResultSheetRequest> sheets) {
+        this.sheets = sheets;
     }
 }
 
