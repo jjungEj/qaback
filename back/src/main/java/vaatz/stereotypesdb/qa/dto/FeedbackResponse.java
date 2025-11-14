@@ -2,7 +2,7 @@ package vaatz.stereotypesdb.qa.dto;
 
 import java.time.LocalDateTime;
 
-public class FeedbackEntryResponse {
+public class FeedbackResponse {
 
     private Long id;
     private String documentName;

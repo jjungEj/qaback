@@ -4,69 +4,69 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import vaatz.stereotypesdb.qa.domain.LocalFileDocument;
-import vaatz.stereotypesdb.qa.dto.LocalFileDocumentRequest;
-import vaatz.stereotypesdb.qa.dto.LocalFileDocumentResponse;
-import vaatz.stereotypesdb.qa.dto.LocalFileQueueSummaryResponse;
-import vaatz.stereotypesdb.qa.repository.LocalFileDocumentRepository;
+import vaatz.stereotypesdb.qa.domain.LocalFile;
+import vaatz.stereotypesdb.qa.dto.LocalFileRequest;
+import vaatz.stereotypesdb.qa.dto.LocalFileResponse;
+import vaatz.stereotypesdb.qa.dto.LocalFileSummaryResponse;
+import vaatz.stereotypesdb.qa.repository.LocalFileRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class LocalFileDocumentService {
+public class LocalFileService {
 
-    private final LocalFileDocumentRepository localFileDocumentRepository;
+    private final LocalFileRepository localFileRepository;
 
-    public LocalFileDocumentService(LocalFileDocumentRepository localFileDocumentRepository) {
-        this.localFileDocumentRepository = localFileDocumentRepository;
+    public LocalFileService(LocalFileRepository localFileRepository) {
+        this.localFileRepository = localFileRepository;
     }
 
-    public LocalFileQueueSummaryResponse getSummary() {
-        LocalFileQueueSummaryResponse response = new LocalFileQueueSummaryResponse();
-        long total = localFileDocumentRepository.count();
-        Long pending = localFileDocumentRepository.countByStatus("PENDING");
-        Long completed = localFileDocumentRepository.countByStatus("COMPLETED");
+    public LocalFileSummaryResponse getSummary() {
+        LocalFileSummaryResponse response = new LocalFileSummaryResponse();
+        long total = localFileRepository.count();
+        Long pending = localFileRepository.countByStatus("PENDING");
+        Long completed = localFileRepository.countByStatus("COMPLETED");
         response.setTotalDocuments(total);
         response.setPendingDocuments(pending);
         response.setCompletedDocuments(completed);
         return response;
     }
 
-    public List<LocalFileDocumentResponse> getAll() {
-        return localFileDocumentRepository.findAll()
+    public List<LocalFileResponse> getAll() {
+        return localFileRepository.findAll()
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
-    public LocalFileDocumentResponse getById(Long id) {
-        LocalFileDocument document = localFileDocumentRepository.findById(id)
+    public LocalFileResponse getById(Long id) {
+        LocalFile document = localFileRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 로컬 파일을 찾을 수 없습니다."));
         return toResponse(document);
     }
 
-    public LocalFileDocumentResponse create(LocalFileDocumentRequest request) {
-        LocalFileDocument document = new LocalFileDocument();
+    public LocalFileResponse create(LocalFileRequest request) {
+        LocalFile document = new LocalFile();
         applyRequest(document, request);
-        return toResponse(localFileDocumentRepository.save(document));
+        return toResponse(localFileRepository.save(document));
     }
 
-    public LocalFileDocumentResponse update(Long id, LocalFileDocumentRequest request) {
-        LocalFileDocument document = localFileDocumentRepository.findById(id)
+    public LocalFileResponse update(Long id, LocalFileRequest request) {
+        LocalFile document = localFileRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 로컬 파일을 찾을 수 없습니다."));
         applyRequest(document, request);
-        return toResponse(localFileDocumentRepository.save(document));
+        return toResponse(localFileRepository.save(document));
     }
 
     public void delete(Long id) {
-        LocalFileDocument document = localFileDocumentRepository.findById(id)
+        LocalFile document = localFileRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 로컬 파일을 찾을 수 없습니다."));
-        localFileDocumentRepository.delete(document);
+        localFileRepository.delete(document);
     }
 
-    private void applyRequest(LocalFileDocument document, LocalFileDocumentRequest request) {
+    private void applyRequest(LocalFile document, LocalFileRequest request) {
         document.setFileName(request.getFileName());
         document.setFileSize(request.getFileSize());
         document.setFileType(request.getFileType());
@@ -76,8 +76,8 @@ public class LocalFileDocumentService {
         document.setDeletable(request.getDeletable());
     }
 
-    private LocalFileDocumentResponse toResponse(LocalFileDocument document) {
-        LocalFileDocumentResponse response = new LocalFileDocumentResponse();
+    private LocalFileResponse toResponse(LocalFile document) {
+        LocalFileResponse response = new LocalFileResponse();
         response.setId(document.getId());
         response.setFileName(document.getFileName());
         response.setFileSize(document.getFileSize());

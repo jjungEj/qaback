@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import vaatz.stereotypesdb.qa.domain.SystemStatusSnapshot;
-import vaatz.stereotypesdb.qa.dto.SystemStatusSnapshotRequest;
+import vaatz.stereotypesdb.qa.domain.SystemStatus;
+import vaatz.stereotypesdb.qa.dto.SystemStatusRequest;
 import vaatz.stereotypesdb.qa.dto.SystemStatusSummaryResponse;
 import vaatz.stereotypesdb.qa.service.SystemStatusService;
 
@@ -31,9 +31,9 @@ public class SystemStatusController {
         return ResponseEntity.ok(systemStatusService.getSummary());
     }
 
-    @PostMapping("/snapshots")
-    public ResponseEntity<SystemStatusSnapshot> createSnapshot(@Valid @RequestBody SystemStatusSnapshotRequest request) {
-        SystemStatusSnapshot created = systemStatusService.createSnapshot(request);
+    @PostMapping
+    public ResponseEntity<SystemStatus> createStatus(@Valid @RequestBody SystemStatusRequest request) {
+        SystemStatus created = systemStatusService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

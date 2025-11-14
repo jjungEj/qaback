@@ -1,25 +1,25 @@
 package vaatz.stereotypesdb.qa.dto;
 
+import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
-public class LocalFileDocumentResponse {
+public class LocalFileRequest {
 
-    private Long id;
+    @NotBlank(message = "파일명은 필수입니다.")
     private String fileName;
+
     private Long fileSize;
+
     private String fileType;
+
+    @NotBlank(message = "상태는 필수입니다.")
     private String status;
+
     private LocalDateTime queuedAt;
+
     private LocalDateTime completedAt;
+
     private Boolean deletable;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public String getFileName() {
         return fileName;

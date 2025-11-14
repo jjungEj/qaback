@@ -1,22 +1,55 @@
 package vaatz.stereotypesdb.qa.dto;
 
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 public class ResultRequest {
 
+    @NotNull(message = "연결할 파이프라인 ID는 필수입니다.")
+    private Long pipelineId;
+
+    @NotBlank(message = "문서명은 필수입니다.")
+    private String documentName;
+
+    @NotBlank(message = "상태는 필수입니다.")
     private String status;
 
-    private String metrics;
+    private Long actualFileSize;
 
-    private String log;
+    private Long transferredFileSize;
 
     private LocalDateTime startedAt;
 
     private LocalDateTime finishedAt;
 
-    @NotNull(message = "연결할 파이프라인 ID는 필수입니다.")
-    private Long pipelineId;
+    private String originalFileName;
+
+    private Long originalFileSize;
+
+    private Long convertedFileSize;
+
+    private String originalViewerUri;
+
+    private String htmlRenderUri;
+
+    private String metadata;
+
+    public Long getPipelineId() {
+        return pipelineId;
+    }
+
+    public void setPipelineId(Long pipelineId) {
+        this.pipelineId = pipelineId;
+    }
+
+    public String getDocumentName() {
+        return documentName;
+    }
+
+    public void setDocumentName(String documentName) {
+        this.documentName = documentName;
+    }
 
     public String getStatus() {
         return status;
@@ -26,20 +59,20 @@ public class ResultRequest {
         this.status = status;
     }
 
-    public String getMetrics() {
-        return metrics;
+    public Long getActualFileSize() {
+        return actualFileSize;
     }
 
-    public void setMetrics(String metrics) {
-        this.metrics = metrics;
+    public void setActualFileSize(Long actualFileSize) {
+        this.actualFileSize = actualFileSize;
     }
 
-    public String getLog() {
-        return log;
+    public Long getTransferredFileSize() {
+        return transferredFileSize;
     }
 
-    public void setLog(String log) {
-        this.log = log;
+    public void setTransferredFileSize(Long transferredFileSize) {
+        this.transferredFileSize = transferredFileSize;
     }
 
     public LocalDateTime getStartedAt() {
@@ -58,11 +91,52 @@ public class ResultRequest {
         this.finishedAt = finishedAt;
     }
 
-    public Long getPipelineId() {
-        return pipelineId;
+    public String getOriginalFileName() {
+        return originalFileName;
     }
 
-    public void setPipelineId(Long pipelineId) {
-        this.pipelineId = pipelineId;
+    public void setOriginalFileName(String originalFileName) {
+        this.originalFileName = originalFileName;
+    }
+
+    public Long getOriginalFileSize() {
+        return originalFileSize;
+    }
+
+    public void setOriginalFileSize(Long originalFileSize) {
+        this.originalFileSize = originalFileSize;
+    }
+
+    public Long getConvertedFileSize() {
+        return convertedFileSize;
+    }
+
+    public void setConvertedFileSize(Long convertedFileSize) {
+        this.convertedFileSize = convertedFileSize;
+    }
+
+    public String getOriginalViewerUri() {
+        return originalViewerUri;
+    }
+
+    public void setOriginalViewerUri(String originalViewerUri) {
+        this.originalViewerUri = originalViewerUri;
+    }
+
+    public String getHtmlRenderUri() {
+        return htmlRenderUri;
+    }
+
+    public void setHtmlRenderUri(String htmlRenderUri) {
+        this.htmlRenderUri = htmlRenderUri;
+    }
+
+    public String getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
     }
 }
+

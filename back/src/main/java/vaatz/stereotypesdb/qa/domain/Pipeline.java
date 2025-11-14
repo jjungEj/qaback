@@ -12,9 +12,6 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
-import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.time.LocalDateTime;
@@ -24,8 +21,8 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "processing_results")
-public class ProcessingResult {
+@Table(name = "pipeline_history")
+public class Pipeline {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,43 +34,23 @@ public class ProcessingResult {
     @Column(nullable = false, length = 50)
     private String status;
 
-    private Long actualFileSize;
-
-    private Long transferredFileSize;
-
     private LocalDateTime startedAt;
 
     private LocalDateTime finishedAt;
 
-    @Column(length = 255)
-    private String originalFileName;
+    private Long durationSeconds;
 
-    private Long originalFileSize;
-
-    private Long convertedFileSize;
-
-    @Column(length = 500)
-    private String originalViewerUri;
-
-    @Column(length = 500)
-    private String htmlRenderUri;
-
-    @Lob
-    private String metadata;
-
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pipeline_history_id")
-    private PipelineHistory pipelineHistory;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "processingResult", fetch = FetchType.LAZY)
-    private List<FeedbackEntry> feedbackEntries = new ArrayList<>();
+    @Column(length = 1000)
+    private String errorMessage;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "pipeline", fetch = FetchType.LAZY)
+    private List<Result> results = new ArrayList<>();
 }
 
