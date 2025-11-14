@@ -8,6 +8,7 @@ public class LocalFileResponse {
     private String fileName;
     private Long fileSize;
     private String fileType;
+    private String storagePath;
     private String status;
     private LocalDateTime queuedAt;
     private LocalDateTime completedAt;
@@ -43,6 +44,14 @@ public class LocalFileResponse {
 
     public void setFileType(String fileType) {
         this.fileType = fileType;
+    }
+
+    public String getStoragePath() {
+        return storagePath;
+    }
+
+    public void setStoragePath(String storagePath) {
+        this.storagePath = storagePath;
     }
 
     public String getStatus() {
