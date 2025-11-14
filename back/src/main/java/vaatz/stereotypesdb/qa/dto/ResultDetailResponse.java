@@ -1,6 +1,8 @@
 package vaatz.stereotypesdb.qa.dto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ResultDetailResponse {
 
@@ -17,6 +19,8 @@ public class ResultDetailResponse {
     private String originalViewerUri;
     private String htmlRenderUri;
     private String metadata;
+
+    private List<ResultSheetResponse> sheets = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -120,6 +124,14 @@ public class ResultDetailResponse {
 
     public void setMetadata(String metadata) {
         this.metadata = metadata;
+    }
+
+    public List<ResultSheetResponse> getSheets() {
+        return sheets;
+    }
+
+    public void setSheets(List<ResultSheetResponse> sheets) {
+        this.sheets = sheets;
     }
 }
 

@@ -1,6 +1,9 @@
 package vaatz.stereotypesdb.qa.controller;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -64,6 +67,17 @@ public class ResultController {
     public ResponseEntity<Void> deleteResult(@PathVariable Long id) {
         resultService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/download/jsonl")
+    public ResponseEntity<ByteArrayResource> downloadJsonl(@PathVariable Long id) {
+        byte[] content = resultService.buildJsonl(id);
+        ByteArrayResource resource = new ByteArrayResource(content);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"result-" + id + ".jsonl\"")
+                .contentLength(content.length)
+                .body(resource);
     }
 }
 

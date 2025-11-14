@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -16,6 +17,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -69,6 +71,11 @@ public class Result {
     @JsonIgnore
     @OneToMany(mappedBy = "result", fetch = FetchType.LAZY)
     private List<Feedback> feedback = new ArrayList<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "result", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sheetOrder ASC, id ASC")
+    private List<ResultSheet> sheets = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;
