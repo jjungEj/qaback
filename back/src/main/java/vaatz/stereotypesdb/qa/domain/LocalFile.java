@@ -31,6 +31,9 @@ public class LocalFile {
     @Column(length = 50)
     private String fileType;
 
+    @Column(length = 512)
+    private String storagePath;
+
     @Column(nullable = false, length = 50)
     private String status;
 
