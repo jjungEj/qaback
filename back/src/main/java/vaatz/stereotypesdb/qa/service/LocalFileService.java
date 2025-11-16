@@ -7,10 +7,14 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import vaatz.stereotypesdb.qa.domain.LocalFile;
+import vaatz.stereotypesdb.qa.domain.Result;
+import vaatz.stereotypesdb.qa.domain.ResultSheet;
 import vaatz.stereotypesdb.qa.dto.LocalFileRequest;
 import vaatz.stereotypesdb.qa.dto.LocalFileResponse;
 import vaatz.stereotypesdb.qa.dto.LocalFileSummaryResponse;
 import vaatz.stereotypesdb.qa.repository.LocalFileRepository;
+import vaatz.stereotypesdb.qa.repository.ResultRepository;
+import vaatz.stereotypesdb.qa.util.ExcelToHtmlConverter;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,9 +32,11 @@ import java.util.stream.Collectors;
 public class LocalFileService {
 
     private final LocalFileRepository localFileRepository;
+    private final ResultRepository resultRepository;
 
-    public LocalFileService(LocalFileRepository localFileRepository) {
+    public LocalFileService(LocalFileRepository localFileRepository, ResultRepository resultRepository) {
         this.localFileRepository = localFileRepository;
+        this.resultRepository = resultRepository;
     }
 
     public LocalFileSummaryResponse getSummary() {
@@ -99,6 +105,20 @@ public class LocalFileService {
         document.setQueuedAt(LocalDateTime.now());
         document.setDeletable(Boolean.TRUE);
 
+        // Excel 파일인 경우 HTML로 변환하고 Result 생성
+        if ("XLSX".equalsIgnoreCase(extension) || "XLS".equalsIgnoreCase(extension)) {
+            try {
+                Result result = convertExcelToResult(file, cleanFilename);
+                document.setResult(result);
+                document.setStatus("COMPLETED");
+                document.setCompletedAt(LocalDateTime.now());
+            } catch (Exception e) {
+                document.setStatus("FAILED");
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+                    "Excel 파일 변환 중 오류가 발생했습니다: " + e.getMessage(), e);
+            }
+        }
+
         return toResponse(localFileRepository.save(document));
     }
 
@@ -132,7 +152,32 @@ public class LocalFileService {
     }
 
     private boolean isAllowedExtension(String extension) {
-        return extension != null && ("xlsx".equalsIgnoreCase(extension) || "csv".equalsIgnoreCase(extension));
+        return extension != null && ("xlsx".equalsIgnoreCase(extension) || "csv".equalsIgnoreCase(extension) || "xls".equalsIgnoreCase(extension));
+    }
+
+    private Result convertExcelToResult(MultipartFile file, String fileName) throws IOException {
+        List<ExcelToHtmlConverter.SheetData> sheetsData = ExcelToHtmlConverter.convertToHtml(file.getInputStream(), fileName);
+
+        Result result = new Result();
+        result.setDocumentName(fileName);
+        result.setStatus("COMPLETED");
+        result.setOriginalFileName(fileName);
+        result.setOriginalFileSize(file.getSize());
+        result.setStartedAt(LocalDateTime.now());
+        result.setFinishedAt(LocalDateTime.now());
+
+        int order = 0;
+        for (ExcelToHtmlConverter.SheetData sheetData : sheetsData) {
+            ResultSheet sheet = new ResultSheet();
+            sheet.setSheetName(sheetData.getSheetName());
+            sheet.setSheetOrder(order++);
+            sheet.setHtmlContent(sheetData.getHtmlContent());
+            sheet.setImageBase64(sheetData.getImageBase64());
+            sheet.setResult(result);
+            result.getSheets().add(sheet);
+        }
+
+        return resultRepository.save(result);
     }
 
     private LocalFileResponse toResponse(LocalFile document) {

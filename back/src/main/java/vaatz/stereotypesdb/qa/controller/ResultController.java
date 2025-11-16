@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import vaatz.stereotypesdb.qa.dto.ResultDetailResponse;
 import vaatz.stereotypesdb.qa.dto.ResultRequest;
+import vaatz.stereotypesdb.qa.dto.ResultSheetHtmlUpdateRequest;
+import vaatz.stereotypesdb.qa.dto.ResultSheetResponse;
 import vaatz.stereotypesdb.qa.dto.ResultSummaryResponse;
 import vaatz.stereotypesdb.qa.service.ResultService;
 
@@ -41,7 +43,11 @@ public class ResultController {
 
     @GetMapping
     public ResponseEntity<List<ResultDetailResponse>> getResults(
-            @RequestParam(required = false) Long pipelineId) {
+            @RequestParam(required = false) Long pipelineId,
+            @RequestParam(required = false, defaultValue = "false") Boolean fromLocalFiles) {
+        if (fromLocalFiles) {
+            return ResponseEntity.ok(resultService.getAllFromLocalFiles());
+        }
         return ResponseEntity.ok(resultService.getAll(pipelineId));
     }
 
@@ -67,6 +73,14 @@ public class ResultController {
     public ResponseEntity<Void> deleteResult(@PathVariable Long id) {
         resultService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{resultId}/sheets/{sheetId}/html")
+    public ResponseEntity<ResultSheetResponse> updateSheetHtml(
+            @PathVariable Long resultId,
+            @PathVariable Long sheetId,
+            @Valid @RequestBody ResultSheetHtmlUpdateRequest request) {
+        return ResponseEntity.ok(resultService.updateSheetHtml(resultId, sheetId, request.getHtmlContent()));
     }
 
     @GetMapping("/{id}/download/jsonl")

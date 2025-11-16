@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import vaatz.stereotypesdb.qa.domain.Pipeline;
 import vaatz.stereotypesdb.qa.domain.Result;
 import vaatz.stereotypesdb.qa.domain.ResultSheet;
+import vaatz.stereotypesdb.qa.dto.QaCommentResponse;
 import vaatz.stereotypesdb.qa.dto.ResultDetailResponse;
 import vaatz.stereotypesdb.qa.dto.ResultRequest;
 import vaatz.stereotypesdb.qa.dto.ResultSheetRequest;
@@ -56,6 +57,13 @@ public class ResultService {
         } else {
             results = resultRepository.findAll();
         }
+        return results.stream()
+                .map(this::toDetailResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<ResultDetailResponse> getAllFromLocalFiles() {
+        List<Result> results = resultRepository.findAllFromLocalFiles();
         return results.stream()
                 .map(this::toDetailResponse)
                 .collect(Collectors.toList());
@@ -126,6 +134,19 @@ public class ResultService {
         response.setSheets(result.getSheets().stream()
                 .map(this::toSheetResponse)
                 .collect(Collectors.toList()));
+        response.setQaComments(result.getQaComments().stream()
+                .map(this::toQaCommentResponse)
+                .collect(Collectors.toList()));
+        return response;
+    }
+
+    private QaCommentResponse toQaCommentResponse(vaatz.stereotypesdb.qa.domain.QaComment comment) {
+        QaCommentResponse response = new QaCommentResponse();
+        response.setId(comment.getId());
+        response.setComment(comment.getComment());
+        response.setModifiedField(comment.getModifiedField());
+        response.setCreatedAt(comment.getCreatedAt());
+        response.setUpdatedAt(comment.getUpdatedAt());
         return response;
     }
 
@@ -165,6 +186,21 @@ public class ResultService {
             result.getSheets().add(sheet);
         }
         result.getSheets().sort(Comparator.comparingInt(sheet -> sheet.getSheetOrder() != null ? sheet.getSheetOrder() : 0));
+    }
+
+    public ResultSheetResponse updateSheetHtml(Long resultId, Long sheetId, String htmlContent) {
+        Result result = resultRepository.findById(resultId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 결과를 찾을 수 없습니다."));
+        
+        ResultSheet sheet = result.getSheets().stream()
+                .filter(s -> s.getId().equals(sheetId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청한 시트를 찾을 수 없습니다."));
+        
+        sheet.setHtmlContent(htmlContent);
+        resultRepository.save(result);
+        
+        return toSheetResponse(sheet);
     }
 
     public byte[] buildJsonl(Long resultId) {

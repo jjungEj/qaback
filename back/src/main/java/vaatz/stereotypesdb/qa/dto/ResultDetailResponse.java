@@ -21,6 +21,8 @@ public class ResultDetailResponse {
     private String metadata;
 
     private List<ResultSheetResponse> sheets = new ArrayList<>();
+    
+    private List<QaCommentResponse> qaComments = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -132,6 +134,14 @@ public class ResultDetailResponse {
 
     public void setSheets(List<ResultSheetResponse> sheets) {
         this.sheets = sheets;
+    }
+
+    public List<QaCommentResponse> getQaComments() {
+        return qaComments;
+    }
+
+    public void setQaComments(List<QaCommentResponse> qaComments) {
+        this.qaComments = qaComments;
     }
 }
 

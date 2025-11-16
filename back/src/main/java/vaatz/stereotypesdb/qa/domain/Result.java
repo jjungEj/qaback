@@ -77,6 +77,11 @@ public class Result {
     @OrderBy("sheetOrder ASC, id ASC")
     private List<ResultSheet> sheets = new ArrayList<>();
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "result", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt DESC")
+    private List<QaComment> qaComments = new ArrayList<>();
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

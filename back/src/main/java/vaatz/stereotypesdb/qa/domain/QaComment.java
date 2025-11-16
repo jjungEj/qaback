@@ -12,36 +12,22 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "local_file_documents")
-public class LocalFile {
+@Table(name = "qa_comments")
+public class QaComment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
-    private String fileName;
+    @Column(nullable = false, length = 2000)
+    private String comment;
 
-    private Long fileSize;
-
-    @Column(length = 50)
-    private String fileType;
-
-    @Column(length = 512)
-    private String storagePath;
-
-    @Column(nullable = false, length = 50)
-    private String status;
-
-    private LocalDateTime queuedAt;
-
-    private LocalDateTime completedAt;
-
-    private Boolean deletable;
+    @Column(length = 100)
+    private String modifiedField;
 
     @JsonIgnore
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "result_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "result_id", nullable = false)
     private Result result;
 
     @CreationTimestamp
