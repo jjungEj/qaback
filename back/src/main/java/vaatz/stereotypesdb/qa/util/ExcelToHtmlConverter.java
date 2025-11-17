@@ -5,8 +5,11 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,14 +40,26 @@ public class ExcelToHtmlConverter {
     }
 
     public static List<SheetData> convertToHtml(InputStream inputStream, String fileName) throws IOException {
+        String lowerFileName = fileName.toLowerCase();
+        
+        if (lowerFileName.endsWith(".csv")) {
+            return convertCsvToHtml(inputStream, fileName);
+        } else if (lowerFileName.endsWith(".xlsx")) {
+            return convertExcelToHtml(inputStream, true);
+        } else if (lowerFileName.endsWith(".xls")) {
+            return convertExcelToHtml(inputStream, false);
+        } else {
+            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. xlsx, xls, csv 파일만 지원합니다.");
+        }
+    }
+
+    private static List<SheetData> convertExcelToHtml(InputStream inputStream, boolean isXlsx) throws IOException {
         Workbook workbook;
         
-        if (fileName.toLowerCase().endsWith(".xlsx")) {
+        if (isXlsx) {
             workbook = new XSSFWorkbook(inputStream);
-        } else if (fileName.toLowerCase().endsWith(".xls")) {
-            workbook = new HSSFWorkbook(inputStream);
         } else {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. xlsx 또는 xls 파일만 지원합니다.");
+            workbook = new HSSFWorkbook(inputStream);
         }
 
         List<SheetData> sheets = new ArrayList<>();
@@ -61,6 +76,65 @@ public class ExcelToHtmlConverter {
         }
 
         return sheets;
+    }
+
+    private static List<SheetData> convertCsvToHtml(InputStream inputStream, String fileName) throws IOException {
+        List<SheetData> sheets = new ArrayList<>();
+        String sheetName = fileName.substring(0, fileName.lastIndexOf('.'));
+        
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            
+            StringBuilder html = new StringBuilder();
+            html.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse;'>\n");
+            
+            String line;
+            while ((line = reader.readLine()) != null) {
+                html.append("<tr>\n");
+                String[] cells = parseCsvLine(line);
+                for (String cell : cells) {
+                    html.append("<td>").append(escapeHtml(cell)).append("</td>\n");
+                }
+                html.append("</tr>\n");
+            }
+            
+            html.append("</table>");
+            sheets.add(new SheetData(sheetName, html.toString(), null));
+        }
+        
+        return sheets;
+    }
+
+    private static String[] parseCsvLine(String line) {
+        List<String> cells = new ArrayList<>();
+        boolean inQuotes = false;
+        StringBuilder currentCell = new StringBuilder();
+        
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    // 이스케이프된 따옴표
+                    currentCell.append('"');
+                    i++;
+                } else {
+                    // 따옴표 시작/끝
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == ',' && !inQuotes) {
+                // 셀 구분자
+                cells.add(currentCell.toString());
+                currentCell = new StringBuilder();
+            } else {
+                currentCell.append(c);
+            }
+        }
+        
+        // 마지막 셀 추가
+        cells.add(currentCell.toString());
+        
+        return cells.toArray(new String[0]);
     }
 
     private static String convertSheetToHtml(Sheet sheet) {
