@@ -3,6 +3,16 @@ package vaatz.stereotypesdb.qa.dto;
 import javax.validation.constraints.NotBlank;
 import java.util.List;
 
+/**
+* @ClassName	: HtmlUpdateRequest.java
+* @Description	: HTML 업데이트 및 JSONL 변환 요청 DTO
+* @Author		: 정은주
+* @Date			: 2025.11.17
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.17        정은주       	- 편집된 HTML과 이미지를 JSONL로 변환하기 위한 요청 데이터
+*/
 public class HtmlUpdateRequest {
     @NotBlank(message = "파일명은 필수입니다.")
     private String fileName;

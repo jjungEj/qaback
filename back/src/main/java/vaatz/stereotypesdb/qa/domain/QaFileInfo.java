@@ -10,6 +10,17 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+* @ClassName	: QaFileInfo.java
+* @Description	: QA 파일 정보를 저장하는 엔티티
+* @Author		: 정은주
+* @Date			: 2025.11.17
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.17        정은주       	- 업로드된 파일의 메타 정보 및 피드백 저장
+* 								- QaFileSheet와 1:N 관계로 시트 정보 관리
+*/
 @Getter
 @Setter
 @Entity

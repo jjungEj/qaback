@@ -3,6 +3,16 @@ package vaatz.stereotypesdb.qa.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+* @ClassName	: QaFileInfoResponse.java
+* @Description	: QA 파일 정보 응답 DTO
+* @Author		: 정은주
+* @Date			: 2025.11.17
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.17        정은주       	- 파일 정보와 시트 정보를 포함한 응답 데이터
+*/
 public class QaFileInfoResponse {
     private Long id;
     private String fileName;

@@ -16,6 +16,18 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+* @ClassName	: QaFileInfoService.java
+* @Description	: QA 파일 정보 관련 비즈니스 로직 처리 서비스
+* @Author		: 정은주
+* @Date			: 2025.11.17
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.17        정은주       	- 엑셀 파일 업로드 및 HTML 변환 처리
+* 								- 파일 조회, 피드백 업데이트, 시트 편집 저장
+* 								- 엔티티와 DTO 간 변환 처리
+*/
 @Service
 @Transactional
 public class QaFileInfoService {

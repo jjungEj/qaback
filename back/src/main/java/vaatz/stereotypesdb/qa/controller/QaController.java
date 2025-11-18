@@ -18,6 +18,19 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+* @ClassName	: QaController.java
+* @Description	: QA 파일 관리 관련 REST API 컨트롤러
+* @Author		: 정은주
+* @Date			: 2025.11.17
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.17        정은주       	- 엑셀 파일 업로드 및 HTML 변환 API
+* 								- 파일 목록 조회, 상세 조회, 삭제 API
+* 								- 피드백 저장, 시트 편집 저장 API
+* 								- HTML을 JSONL 형식으로 변환하는 API
+*/
 @Validated
 @RestController
 @RequestMapping("/api/qa")

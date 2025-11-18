@@ -13,6 +13,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+* @ClassName	: ExcelToHtmlConverter.java
+* @Description	: 엑셀 파일(xlsx, xls, csv)을 HTML 테이블 형식으로 변환하는 유틸리티 클래스
+* @Author		: 정은주
+* @Date			: 2025.11.17
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.17        정은주       	- Apache POI를 사용한 엑셀 파일 파싱
+* 								- 병합 셀 처리 및 HTML 이스케이프 처리
+* 								- CSV 파일 파싱 지원
+*/
 public class ExcelToHtmlConverter {
 
     public static class SheetData {

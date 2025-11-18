@@ -2,6 +2,16 @@ package vaatz.stereotypesdb.qa.dto;
 
 import java.util.List;
 
+/**
+* @ClassName	: ExcelUploadResponse.java
+* @Description	: 엑셀 파일 업로드 응답 DTO
+* @Author		: 정은주
+* @Date			: 2025.11.17
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.17        정은주       	- 업로드된 파일명과 시트별 HTML 응답 데이터
+*/
 public class ExcelUploadResponse {
     private String fileName;
     private List<SheetHtmlResponse> sheets;
