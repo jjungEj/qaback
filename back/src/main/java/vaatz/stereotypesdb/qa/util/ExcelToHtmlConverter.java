@@ -144,42 +144,35 @@ public class ExcelToHtmlConverter {
         int firstRowNum = sheet.getFirstRowNum();
         int lastRowNum = sheet.getLastRowNum();
 
-        if (firstRowNum > lastRowNum) {
+        if (sheet.getPhysicalNumberOfRows() == 0 || firstRowNum > lastRowNum) {
             html.append("</table>");
             return html.toString();
         }
 
         List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+        int maxColumnNum = getMaxColumnNumber(sheet);
 
         for (int rowNum = firstRowNum; rowNum <= lastRowNum; rowNum++) {
             Row row = sheet.getRow(rowNum);
             html.append("<tr>\n");
 
-            if (row == null) {
-                html.append("<td></td>\n");
-                html.append("</tr>\n");
-                continue;
-            }
-
-            int firstCellNum = row.getFirstCellNum();
-            int lastCellNum = row.getLastCellNum();
-
-            for (int cellNum = firstCellNum; cellNum < lastCellNum; cellNum++) {
-                Cell cell = row.getCell(cellNum);
-                
-                if (isCellInMergedRegion(cellNum, rowNum, mergedRegions)) {
-                    CellRangeAddress mergedRegion = getMergedRegion(cellNum, rowNum, mergedRegions);
+            for (int cellNum = 0; cellNum < maxColumnNum; cellNum++) {
+                CellRangeAddress mergedRegion = getMergedRegion(cellNum, rowNum, mergedRegions);
+                if (mergedRegion != null) {
                     if (mergedRegion.getFirstRow() == rowNum && mergedRegion.getFirstColumn() == cellNum) {
                         int rowspan = mergedRegion.getLastRow() - mergedRegion.getFirstRow() + 1;
                         int colspan = mergedRegion.getLastColumn() - mergedRegion.getFirstColumn() + 1;
+                        Cell cell = row != null ? row.getCell(cellNum) : null;
                         String cellValue = getCellValueAsString(cell);
-                        html.append(String.format("<td rowspan='%d' colspan='%d'>%s</td>\n", 
-                            rowspan, colspan, escapeHtml(cellValue)));
+                        html.append(String.format("<td rowspan='%d' colspan='%d'>%s</td>\n",
+                                rowspan, colspan, escapeHtml(cellValue)));
                     }
-                } else {
-                    String cellValue = getCellValueAsString(cell);
-                    html.append("<td>").append(escapeHtml(cellValue)).append("</td>\n");
+                    continue;
                 }
+
+                Cell cell = row != null ? row.getCell(cellNum) : null;
+                String cellValue = getCellValueAsString(cell);
+                html.append("<td>").append(escapeHtml(cellValue)).append("</td>\n");
             }
 
             html.append("</tr>\n");
@@ -189,15 +182,6 @@ public class ExcelToHtmlConverter {
         return html.toString();
     }
 
-    private static boolean isCellInMergedRegion(int col, int row, List<CellRangeAddress> mergedRegions) {
-        for (CellRangeAddress region : mergedRegions) {
-            if (region.isInRange(row, col)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static CellRangeAddress getMergedRegion(int col, int row, List<CellRangeAddress> mergedRegions) {
         for (CellRangeAddress region : mergedRegions) {
             if (region.isInRange(row, col)) {
@@ -205,6 +189,21 @@ public class ExcelToHtmlConverter {
             }
         }
         return null;
+    }
+
+    private static int getMaxColumnNumber(Sheet sheet) {
+        int maxColumnNum = 0;
+        for (int rowNum = sheet.getFirstRowNum(); rowNum <= sheet.getLastRowNum(); rowNum++) {
+            Row row = sheet.getRow(rowNum);
+            if (row == null) {
+                continue;
+            }
+            short lastCellNum = row.getLastCellNum();
+            if (lastCellNum > maxColumnNum) {
+                maxColumnNum = lastCellNum;
+            }
+        }
+        return maxColumnNum;
     }
 
     private static String getCellValueAsString(Cell cell) {
