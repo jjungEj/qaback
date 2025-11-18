@@ -128,19 +128,17 @@
 		</dependency>
 		
 		<!-- 외부 라이브러리 -->
-		<dependency>
-            <groupId>com.tmax.tibero</groupId>
-            <artifactId>jdbc</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${pom.basedir}/lib/tibero6-jdbc.jar</systemPath>
+        
+        <!-- Apache POI for Excel processing -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.2.3</version>
         </dependency>
         <dependency>
-            <groupId>com.softcamp</groupId>
-            <artifactId>scsl</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${pom.basedir}/lib/scsl.jar</systemPath>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.3</version>
         </dependency>
 	</dependencies>
 
