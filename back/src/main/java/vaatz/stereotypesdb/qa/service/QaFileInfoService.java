@@ -11,6 +11,7 @@ import vaatz.stereotypesdb.qa.dto.QaFileInfoResponse;
 import vaatz.stereotypesdb.qa.dto.SheetsUpdateRequest;
 import vaatz.stereotypesdb.qa.repository.QaFileInfoRepository;
 import vaatz.stereotypesdb.qa.util.ExcelToHtmlConverter;
+import vaatz.stereotypesdb.qa.util.HtmlTableParser;
 
 import java.io.IOException;
 import java.util.List;
@@ -38,29 +39,17 @@ public class QaFileInfoService {
         this.qaFileInfoRepository = qaFileInfoRepository;
     }
 
-    public QaFileInfoResponse uploadFile(String fileName, long fileSize, String fileType, 
-                                       java.io.InputStream inputStream) throws IOException {
-        // 엑셀을 HTML로 변환
+    public QaFileInfoResponse uploadFile(String fileName, long fileSize, String fileType,
+                                         java.io.InputStream inputStream) throws IOException {
         List<ExcelToHtmlConverter.SheetData> sheets = ExcelToHtmlConverter.convertToHtml(inputStream, fileName);
+        QaFileInfo saved = persistFileWithSheets(fileName, fileSize, fileType, sheets);
+        return toResponse(saved);
+    }
 
-        // QaFileInfo 엔티티 생성
-        QaFileInfo qaFileInfo = new QaFileInfo();
-        qaFileInfo.setFileName(fileName);
-        qaFileInfo.setFileSize(fileSize);
-        qaFileInfo.setFileType(fileType);
-
-        // 시트 정보 저장
-        int order = 0;
-        for (ExcelToHtmlConverter.SheetData sheetData : sheets) {
-            QaFileSheet qaFileSheet = new QaFileSheet();
-            qaFileSheet.setSheetName(sheetData.getSheetName());
-            qaFileSheet.setSheetOrder(order++);
-            qaFileSheet.setHtmlContent(sheetData.getHtmlContent());
-            qaFileSheet.setQaFileInfo(qaFileInfo);
-            qaFileInfo.getSheets().add(qaFileSheet);
-        }
-
-        QaFileInfo saved = qaFileInfoRepository.save(qaFileInfo);
+    public QaFileInfoResponse uploadHtmlFile(String fileName, long fileSize, java.io.InputStream inputStream) throws IOException {
+        List<ExcelToHtmlConverter.SheetData> sheets = HtmlTableParser.parse(inputStream, fileName);
+        String fileType = resolveFileType(fileName, "html");
+        QaFileInfo saved = persistFileWithSheets(fileName, fileSize, fileType, sheets);
         return toResponse(saved);
     }
 
@@ -107,6 +96,36 @@ public class QaFileInfoService {
         // cascade = CascadeType.ALL, orphanRemoval = true 설정으로 인해
         // QaFileInfo 삭제 시 연관된 QaFileSheet도 자동으로 삭제됨
         qaFileInfoRepository.delete(qaFileInfo);
+    }
+
+    private QaFileInfo persistFileWithSheets(String fileName, long fileSize, String fileType,
+                                             List<ExcelToHtmlConverter.SheetData> sheets) {
+        QaFileInfo qaFileInfo = new QaFileInfo();
+        qaFileInfo.setFileName(fileName);
+        qaFileInfo.setFileSize(fileSize);
+        qaFileInfo.setFileType(fileType);
+
+        int order = 0;
+        for (ExcelToHtmlConverter.SheetData sheetData : sheets) {
+            QaFileSheet qaFileSheet = new QaFileSheet();
+            qaFileSheet.setSheetName(sheetData.getSheetName());
+            qaFileSheet.setSheetOrder(order++);
+            qaFileSheet.setHtmlContent(sheetData.getHtmlContent());
+            qaFileSheet.setQaFileInfo(qaFileInfo);
+            qaFileInfo.getSheets().add(qaFileSheet);
+        }
+
+        return qaFileInfoRepository.save(qaFileInfo);
+    }
+
+    private String resolveFileType(String fileName, String defaultType) {
+        if (fileName != null) {
+            int dotIndex = fileName.lastIndexOf('.');
+            if (dotIndex >= 0 && dotIndex + 1 < fileName.length()) {
+                return fileName.substring(dotIndex + 1).toLowerCase();
+            }
+        }
+        return defaultType;
     }
 
     private QaFileInfoResponse toResponse(QaFileInfo qaFileInfo) {
