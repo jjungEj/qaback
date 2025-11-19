@@ -66,6 +66,30 @@ public class QaController {
         }
     }
 
+    // HTML 파일 업로드 (이미 테이블 형태의 HTML 저장)
+    @PostMapping(value = "/upload/html", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<QaFileInfoResponse> uploadHtml(@RequestPart("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.toLowerCase().endsWith(".html")
+                && !fileName.toLowerCase().endsWith(".htm"))) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            QaFileInfoResponse response = qaFileInfoService.uploadHtmlFile(
+                    fileName, file.getSize(), file.getInputStream());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     // 파일 목록 조회
     @GetMapping("/files")
     public ResponseEntity<List<QaFileInfoResponse>> getFileList() {
