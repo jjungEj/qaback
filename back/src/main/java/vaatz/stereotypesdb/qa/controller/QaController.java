@@ -42,7 +42,7 @@ public class QaController {
         this.qaFileInfoService = qaFileInfoService;
     }
 
-    // 엑셀 파일 업로드 및 HTML 변환 (단일 파일)
+    // 엑셀 파일 업로드 및 HTML 변환 (DB 저장)
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<QaFileInfoResponse> uploadExcel(@RequestPart("file") MultipartFile file) {
         if (file.isEmpty()) {
@@ -64,17 +64,6 @@ public class QaController {
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-    }
-
-    // 엑셀 파일 다중 업로드 (중복 파일 감지 포함)
-    @PostMapping(value = "/upload/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MultiUploadResponse> uploadExcelBatch(@RequestPart("files") List<MultipartFile> files) {
-        if (files == null || files.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        MultiUploadResponse response = qaFileInfoService.uploadMultipleFiles(files);
-        HttpStatus status = response.getUploadedFiles().isEmpty() ? HttpStatus.CONFLICT : HttpStatus.CREATED;
-        return ResponseEntity.status(status).body(response);
     }
 
     // HTML 파일 업로드 (이미 테이블 형태의 HTML 저장)
@@ -101,15 +90,10 @@ public class QaController {
         }
     }
 
-    // 파일 목록 조회 (페이지네이션 + 검색)
+    // 파일 목록 조회
     @GetMapping("/files")
-    public ResponseEntity<QaFilePageResponse> getFileList(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        int sanitizedPage = Math.max(page, 0);
-        int sanitizedSize = size <= 0 ? 10 : Math.min(size, 50);
-        return ResponseEntity.ok(qaFileInfoService.getFiles(sanitizedPage, sanitizedSize, keyword));
+    public ResponseEntity<List<QaFileInfoResponse>> getFileList() {
+        return ResponseEntity.ok(qaFileInfoService.getAllFiles());
     }
 
     // 파일 상세 조회
