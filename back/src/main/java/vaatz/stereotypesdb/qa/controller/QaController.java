@@ -42,9 +42,9 @@ public class QaController {
         this.qaFileInfoService = qaFileInfoService;
     }
 
-    // 엑셀 파일 업로드 및 HTML 변환 (DB 저장)
+    // 엑셀 파일 업로드 및 HTML 변환 (DB 저장) - 단일 파일 (하위 호환성 유지)
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<QaFileInfoResponse> uploadExcel(@RequestPart("file") MultipartFile file) {
+    public ResponseEntity<?> uploadExcel(@RequestPart("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
@@ -61,14 +61,31 @@ public class QaController {
             QaFileInfoResponse response = qaFileInfoService.uploadFile(
                     fileName, file.getSize(), fileType, file.getInputStream());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            if (e.getStatus() == HttpStatus.CONFLICT) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("이미 업로드한 파일입니다: " + fileName);
+            }
+            return ResponseEntity.status(e.getStatus()).body(e.getReason());
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+    
+    // 다중 파일 업로드
+    @PostMapping(value = "/upload/multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MultiUploadResponse> uploadMultipleFiles(@RequestPart("files") MultipartFile[] files) {
+        if (files == null || files.length == 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        MultiUploadResponse response = qaFileInfoService.uploadMultipleFiles(files);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
-    // HTML 파일 업로드 (이미 테이블 형태의 HTML 저장)
+    // HTML 파일 업로드 (이미 테이블 형태의 HTML 저장) - 단일 파일 (하위 호환성 유지)
     @PostMapping(value = "/upload/html", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<QaFileInfoResponse> uploadHtml(@RequestPart("file") MultipartFile file) {
+    public ResponseEntity<?> uploadHtml(@RequestPart("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
@@ -83,6 +100,12 @@ public class QaController {
             QaFileInfoResponse response = qaFileInfoService.uploadHtmlFile(
                     fileName, file.getSize(), file.getInputStream());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            if (e.getStatus() == HttpStatus.CONFLICT) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("이미 업로드한 파일입니다: " + fileName);
+            }
+            return ResponseEntity.status(e.getStatus()).body(e.getReason());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (IOException e) {
@@ -90,10 +113,27 @@ public class QaController {
         }
     }
 
-    // 파일 목록 조회
+    // 파일 목록 조회 (전체, 하위 호환성 유지)
     @GetMapping("/files")
     public ResponseEntity<List<QaFileInfoResponse>> getFileList() {
         return ResponseEntity.ok(qaFileInfoService.getAllFiles());
+    }
+    
+    // 파일 목록 조회 (페이징)
+    @GetMapping("/files/paged")
+    public ResponseEntity<PageResponse<QaFileInfoResponse>> getFileListWithPaging(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(qaFileInfoService.getFilesWithPaging(page, size));
+    }
+    
+    // 파일 검색 (페이징)
+    @GetMapping("/files/search")
+    public ResponseEntity<PageResponse<QaFileInfoResponse>> searchFiles(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(qaFileInfoService.searchFiles(keyword, page, size));
     }
 
     // 파일 상세 조회
