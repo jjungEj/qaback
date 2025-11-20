@@ -23,7 +23,10 @@ import vaatz.stereotypesdb.qa.util.HtmlTableParser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -92,6 +95,7 @@ public class QaFileInfoService {
         }
 
         response.setTotalRequested(files.size());
+        ensureNoDuplicateInBatch(files);
         for (MultipartFile file : files) {
             String originalFileName = file != null ? file.getOriginalFilename() : null;
 
@@ -107,11 +111,6 @@ public class QaFileInfoService {
 
             if (!isSupportedSpreadsheet(originalFileName)) {
                 response.addFailedFile(originalFileName, "지원하지 않는 파일 형식입니다.");
-                continue;
-            }
-
-            if (isDuplicateFileName(originalFileName)) {
-                response.addDuplicateFile(originalFileName, DUPLICATE_MESSAGE);
                 continue;
             }
 
@@ -201,6 +200,34 @@ public class QaFileInfoService {
 
     private void assertNotDuplicate(String fileName) {
         if (isDuplicateFileName(fileName)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, DUPLICATE_MESSAGE);
+        }
+    }
+
+    private void ensureNoDuplicateInBatch(List<MultipartFile> files) {
+        Set<String> duplicatedFiles = new LinkedHashSet<>();
+        Set<String> requestFileNames = new HashSet<>();
+
+        for (MultipartFile file : files) {
+            if (file == null) {
+                continue;
+            }
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || fileName.isBlank()) {
+                continue;
+            }
+
+            if (!requestFileNames.add(fileName)) {
+                duplicatedFiles.add(fileName);
+                continue;
+            }
+
+            if (isDuplicateFileName(fileName)) {
+                duplicatedFiles.add(fileName);
+            }
+        }
+
+        if (!duplicatedFiles.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, DUPLICATE_MESSAGE);
         }
     }
