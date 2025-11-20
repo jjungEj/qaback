@@ -1,19 +1,28 @@
 package vaatz.stereotypesdb.qa.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import vaatz.stereotypesdb.qa.domain.QaFileInfo;
 import vaatz.stereotypesdb.qa.domain.QaFileSheet;
 import vaatz.stereotypesdb.qa.dto.FeedbackRequest;
+import vaatz.stereotypesdb.qa.dto.MultiUploadResponse;
 import vaatz.stereotypesdb.qa.dto.QaFileInfoResponse;
+import vaatz.stereotypesdb.qa.dto.QaFilePageResponse;
 import vaatz.stereotypesdb.qa.dto.SheetsUpdateRequest;
 import vaatz.stereotypesdb.qa.repository.QaFileInfoRepository;
 import vaatz.stereotypesdb.qa.util.ExcelToHtmlConverter;
 import vaatz.stereotypesdb.qa.util.HtmlTableParser;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +42,10 @@ import java.util.stream.Collectors;
 @Transactional
 public class QaFileInfoService {
 
+    private static final String DUPLICATE_MESSAGE = "이미 업로드 된 파일입니다.";
+    private static final List<String> SUPPORTED_SPREADSHEET_EXTENSIONS =
+            Arrays.asList("xlsx", "xls", "csv");
+
     private final QaFileInfoRepository qaFileInfoRepository;
 
     public QaFileInfoService(QaFileInfoRepository qaFileInfoRepository) {
@@ -40,24 +53,86 @@ public class QaFileInfoService {
     }
 
     public QaFileInfoResponse uploadFile(String fileName, long fileSize, String fileType,
-                                         java.io.InputStream inputStream) throws IOException {
+                                         InputStream inputStream) throws IOException {
+        assertNotDuplicate(fileName);
         List<ExcelToHtmlConverter.SheetData> sheets = ExcelToHtmlConverter.convertToHtml(inputStream, fileName);
-        QaFileInfo saved = persistFileWithSheets(fileName, fileSize, fileType, sheets);
-        return toResponse(saved);
+        return saveFileWithSheets(fileName, fileSize, fileType, sheets);
     }
 
-    public QaFileInfoResponse uploadHtmlFile(String fileName, long fileSize, java.io.InputStream inputStream) throws IOException {
+    public QaFileInfoResponse uploadHtmlFile(String fileName, long fileSize, InputStream inputStream) throws IOException {
+        assertNotDuplicate(fileName);
         List<ExcelToHtmlConverter.SheetData> sheets = HtmlTableParser.parse(inputStream, fileName);
         String fileType = resolveFileType(fileName, "html");
-        QaFileInfo saved = persistFileWithSheets(fileName, fileSize, fileType, sheets);
-        return toResponse(saved);
+        return saveFileWithSheets(fileName, fileSize, fileType, sheets);
     }
 
-    public List<QaFileInfoResponse> getAllFiles() {
-        List<QaFileInfo> files = qaFileInfoRepository.findAllByOrderByUploadedAtDesc();
-        return files.stream()
+    public QaFilePageResponse getFiles(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "uploadedAt"));
+        Page<QaFileInfo> filePage = (keyword == null || keyword.isBlank())
+                ? qaFileInfoRepository.findAll(pageable)
+                : qaFileInfoRepository.findByFileNameContainingIgnoreCase(keyword, pageable);
+
+        QaFilePageResponse response = new QaFilePageResponse();
+        response.setFiles(filePage.getContent().stream()
                 .map(this::toListResponse)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
+        response.setCurrentPage(filePage.getNumber());
+        response.setPageSize(filePage.getSize());
+        response.setTotalElements(filePage.getTotalElements());
+        response.setTotalPages(filePage.getTotalPages());
+        response.setHasNext(filePage.hasNext());
+        return response;
+    }
+
+    public MultiUploadResponse uploadMultipleFiles(List<MultipartFile> files) {
+        MultiUploadResponse response = new MultiUploadResponse();
+        if (files == null || files.isEmpty()) {
+            response.setTotalRequested(0);
+            return response;
+        }
+
+        response.setTotalRequested(files.size());
+        for (MultipartFile file : files) {
+            String originalFileName = file != null ? file.getOriginalFilename() : null;
+
+            if (file == null || file.isEmpty()) {
+                response.addFailedFile(originalFileName, "파일이 비어 있습니다.");
+                continue;
+            }
+
+            if (originalFileName == null) {
+                response.addFailedFile("unknown", "파일 이름을 확인할 수 없습니다.");
+                continue;
+            }
+
+            if (!isSupportedSpreadsheet(originalFileName)) {
+                response.addFailedFile(originalFileName, "지원하지 않는 파일 형식입니다.");
+                continue;
+            }
+
+            if (isDuplicateFileName(originalFileName)) {
+                response.addDuplicateFile(originalFileName, DUPLICATE_MESSAGE);
+                continue;
+            }
+
+            try (InputStream inputStream = file.getInputStream()) {
+                String fileType = resolveFileType(originalFileName, resolveDefaultSpreadsheetType(originalFileName));
+                List<ExcelToHtmlConverter.SheetData> sheets = ExcelToHtmlConverter.convertToHtml(inputStream, originalFileName);
+                QaFileInfoResponse saved = saveFileWithSheets(originalFileName, file.getSize(), fileType, sheets);
+                response.addUploadedFile(saved);
+            } catch (IOException e) {
+                response.addFailedFile(originalFileName, "업로드 중 오류가 발생했습니다.");
+            }
+        }
+
+        return response;
+    }
+
+    public boolean isDuplicateFileName(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return false;
+        }
+        return qaFileInfoRepository.existsByFileNameIgnoreCase(fileName);
     }
 
     public QaFileInfoResponse getFileById(Long id) {
@@ -98,6 +173,12 @@ public class QaFileInfoService {
         qaFileInfoRepository.delete(qaFileInfo);
     }
 
+    private QaFileInfoResponse saveFileWithSheets(String fileName, long fileSize, String fileType,
+                                                  List<ExcelToHtmlConverter.SheetData> sheets) {
+        QaFileInfo saved = persistFileWithSheets(fileName, fileSize, fileType, sheets);
+        return toResponse(saved);
+    }
+
     private QaFileInfo persistFileWithSheets(String fileName, long fileSize, String fileType,
                                              List<ExcelToHtmlConverter.SheetData> sheets) {
         QaFileInfo qaFileInfo = new QaFileInfo();
@@ -118,6 +199,12 @@ public class QaFileInfoService {
         return qaFileInfoRepository.save(qaFileInfo);
     }
 
+    private void assertNotDuplicate(String fileName) {
+        if (isDuplicateFileName(fileName)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, DUPLICATE_MESSAGE);
+        }
+    }
+
     private String resolveFileType(String fileName, String defaultType) {
         if (fileName != null) {
             int dotIndex = fileName.lastIndexOf('.');
@@ -126,6 +213,16 @@ public class QaFileInfoService {
             }
         }
         return defaultType;
+    }
+
+    private boolean isSupportedSpreadsheet(String fileName) {
+        String extension = resolveFileType(fileName, "");
+        return SUPPORTED_SPREADSHEET_EXTENSIONS.contains(extension);
+    }
+
+    private String resolveDefaultSpreadsheetType(String fileName) {
+        String extension = resolveFileType(fileName, "xlsx");
+        return SUPPORTED_SPREADSHEET_EXTENSIONS.contains(extension) ? extension : "xlsx";
     }
 
     private QaFileInfoResponse toResponse(QaFileInfo qaFileInfo) {
