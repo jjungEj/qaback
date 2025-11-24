@@ -8,13 +8,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import vaatz.stereotypesdb.qa.dto.*;
-import vaatz.stereotypesdb.qa.service.QaFileInfoService;
-import vaatz.stereotypesdb.qa.util.ExcelToHtmlConverter;
+import org.springframework.web.server.ResponseStatusException;
+import vaatz.stereotypesdb.qa.dto.FileMoveRequest;
+import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
+import vaatz.stereotypesdb.qa.dto.HtmlUpdateRequest;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
+import vaatz.stereotypesdb.qa.model.HtmlSheetData;
+import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
+import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
 import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
 import javax.validation.Valid;
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,163 +42,104 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/qa")
 public class QaController {
 
-    private final QaFileInfoService qaFileInfoService;
+    private final FileWorkspaceService fileWorkspaceService;
 
-    public QaController(QaFileInfoService qaFileInfoService) {
-        this.qaFileInfoService = qaFileInfoService;
+    public QaController(FileWorkspaceService fileWorkspaceService) {
+        this.fileWorkspaceService = fileWorkspaceService;
     }
 
-    // 엑셀 파일 업로드 및 HTML 변환 (DB 저장) - 단일 파일 (하위 호환성 유지)
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadExcel(@RequestPart("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        String fileName = file.getOriginalFilename();
-        if (fileName == null || (!fileName.toLowerCase().endsWith(".xlsx") 
-                && !fileName.toLowerCase().endsWith(".xls") 
-                && !fileName.toLowerCase().endsWith(".csv"))) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        try {
-            String fileType = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
-            QaFileInfoResponse response = qaFileInfoService.uploadFile(
-                    fileName, file.getSize(), fileType, file.getInputStream());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (org.springframework.web.server.ResponseStatusException e) {
-            if (e.getStatus() == HttpStatus.CONFLICT) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("이미 업로드한 파일입니다: " + fileName);
-            }
-            return ResponseEntity.status(e.getStatus()).body(e.getReason());
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    /**
+     * after -> before -> dev 순으로 워크스페이스 현황을 반환한다.
+     */
+    @GetMapping("/workspace")
+    public ResponseEntity<List<WorkspaceFolderResponse>> getWorkspace(
+            @RequestParam(defaultValue = "0") int afterPage,
+            @RequestParam(defaultValue = "0") int beforePage,
+            @RequestParam(defaultValue = "0") int devPage,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(fileWorkspaceService.getWorkspaceOverview(afterPage, beforePage, devPage, size));
     }
-    
-    // 다중 파일 업로드
-    @PostMapping(value = "/upload/multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MultiUploadResponse> uploadMultipleFiles(@RequestPart("files") MultipartFile[] files) {
-        if (files == null || files.length == 0) {
-            return ResponseEntity.badRequest().build();
-        }
-        
-        MultiUploadResponse response = qaFileInfoService.uploadMultipleFiles(files);
+
+    /**
+     * HTML 파일을 업로드하여 before 폴더에 저장한다.
+     */
+    @PostMapping(value = "/files/html", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<WorkspaceFileResponse> uploadHtml(@RequestPart("file") MultipartFile file) {
+        WorkspaceFileResponse response = fileWorkspaceService.uploadHtml(file);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // HTML 파일 업로드 (이미 테이블 형태의 HTML 저장) - 단일 파일 (하위 호환성 유지)
-    @PostMapping(value = "/upload/html", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadHtml(@RequestPart("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        String fileName = file.getOriginalFilename();
-        if (fileName == null || (!fileName.toLowerCase().endsWith(".html")
-                && !fileName.toLowerCase().endsWith(".htm"))) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        try {
-            QaFileInfoResponse response = qaFileInfoService.uploadHtmlFile(
-                    fileName, file.getSize(), file.getInputStream());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (org.springframework.web.server.ResponseStatusException e) {
-            if (e.getStatus() == HttpStatus.CONFLICT) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("이미 업로드한 파일입니다: " + fileName);
-            }
-            return ResponseEntity.status(e.getStatus()).body(e.getReason());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    /**
+     * before 폴더의 HTML을 덮어쓴다.
+     */
+    @PutMapping("/files/before/{fileName}")
+    public ResponseEntity<WorkspaceFileResponse> saveHtml(
+            @PathVariable String fileName,
+            @Valid @RequestBody HtmlFileSaveRequest request) {
+        WorkspaceFileResponse response = fileWorkspaceService.saveHtmlContent(fileName, request);
+        return ResponseEntity.ok(response);
     }
 
-    // 파일 목록 조회 (전체, 하위 호환성 유지)
-    @GetMapping("/files")
-    public ResponseEntity<List<QaFileInfoResponse>> getFileList() {
-        return ResponseEntity.ok(qaFileInfoService.getAllFiles());
-    }
-    
-    // 파일 목록 조회 (페이징)
-    @GetMapping("/files/paged")
-    public ResponseEntity<PageResponse<QaFileInfoResponse>> getFileListWithPaging(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(qaFileInfoService.getFilesWithPaging(page, size));
-    }
-    
-    // 파일 검색 (페이징)
-    @GetMapping("/files/search")
-    public ResponseEntity<PageResponse<QaFileInfoResponse>> searchFiles(
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(qaFileInfoService.searchFiles(keyword, page, size));
+    /**
+     * 폴더/파일 내용을 그대로 반환한다.
+     */
+    @GetMapping("/files/{folder}/{fileName}")
+    public ResponseEntity<WorkspaceFileContentResponse> readFile(
+            @PathVariable String folder,
+            @PathVariable String fileName) {
+        WorkspaceFolderType folderType = WorkspaceFolderType.from(folder);
+        return ResponseEntity.ok(fileWorkspaceService.readFile(folderType, fileName));
     }
 
-    // 파일 상세 조회
-    @GetMapping("/files/{id}")
-    public ResponseEntity<QaFileInfoResponse> getFileDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(qaFileInfoService.getFileById(id));
+    /**
+     * after 폴더에 있는 JSONL을 dev 경로로 이동한다.
+     */
+    @PostMapping("/files/after/promote")
+    public ResponseEntity<WorkspaceFileResponse> moveAfterToDev(@Valid @RequestBody FileMoveRequest request) {
+        WorkspaceFileResponse response = fileWorkspaceService.moveAfterToDev(request.getFileName());
+        return ResponseEntity.ok(response);
     }
 
-    // 피드백 저장
-    @PutMapping("/files/{id}/feedback")
-    public ResponseEntity<QaFileInfoResponse> updateFeedback(
-            @PathVariable Long id,
-            @Valid @RequestBody FeedbackRequest request) {
-        return ResponseEntity.ok(qaFileInfoService.updateFeedback(id, request));
-    }
-
-    // 편집된 시트 저장
-    @PutMapping("/files/{id}/sheets")
-    public ResponseEntity<QaFileInfoResponse> updateSheets(
-            @PathVariable Long id,
-            @Valid @RequestBody vaatz.stereotypesdb.qa.dto.SheetsUpdateRequest request) {
-        return ResponseEntity.ok(qaFileInfoService.updateSheets(id, request));
-    }
-
-    // 파일 삭제
-    @DeleteMapping("/files/{id}")
-    public ResponseEntity<Void> deleteFile(@PathVariable Long id) {
-        qaFileInfoService.deleteFile(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    // 수정된 HTML을 JSONL 형식으로 변환
+    /**
+     * 수정된 HTML 테이블을 JSONL로 변환하고 after 폴더에 동일 파일을 저장한다.
+     */
     @PostMapping("/convert/jsonl")
     public ResponseEntity<ByteArrayResource> convertToJsonl(@Valid @RequestBody HtmlUpdateRequest request) {
-        try {
-            List<ExcelToHtmlConverter.SheetData> sheets = request.getSheets().stream()
-                    .map(sheet -> new ExcelToHtmlConverter.SheetData(
-                            sheet.getSheetName(), 
-                            sheet.getHtmlContent(), 
-                            sheet.getImageBase64())) // 프론트엔드에서 전달한 base64 이미지 사용
-                    .collect(Collectors.toList());
+        List<HtmlSheetData> sheets = toSheetData(request);
+        byte[] jsonlBytes = JsonlConverter.toJsonlBytes(sheets);
+        ByteArrayResource resource = new ByteArrayResource(jsonlBytes);
 
-            byte[] jsonlBytes = JsonlConverter.toJsonlBytes(sheets);
-            ByteArrayResource resource = new ByteArrayResource(jsonlBytes);
-            
-            String jsonlFileName = request.getFileName();
-            if (jsonlFileName != null && jsonlFileName.contains(".")) {
-                jsonlFileName = jsonlFileName.substring(0, jsonlFileName.lastIndexOf('.')) + ".jsonl";
-            } else {
-                jsonlFileName = "output.jsonl";
-            }
+        String jsonlFileName = resolveJsonlFileName(request.getFileName());
+        fileWorkspaceService.saveJsonlToAfter(jsonlFileName, jsonlBytes);
 
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + jsonlFileName + "\"")
-                    .contentLength(jsonlBytes.length)
-                    .body(resource);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + jsonlFileName + "\"")
+                .contentLength(jsonlBytes.length)
+                .body(resource);
+    }
+
+    private List<HtmlSheetData> toSheetData(HtmlUpdateRequest request) {
+        if (request.getSheets() == null || request.getSheets().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시트 데이터가 필요합니다.");
         }
+        return request.getSheets().stream()
+                .map(sheet -> new HtmlSheetData(
+                        sheet.getSheetName(),
+                        sheet.getHtmlContent(),
+                        sheet.getImageBase64()))
+                .collect(Collectors.toList());
+    }
+
+    private String resolveJsonlFileName(String sourceFileName) {
+        if (sourceFileName == null || sourceFileName.trim().isEmpty()) {
+            return "output.jsonl";
+        }
+        String trimmed = sourceFileName.trim();
+        int idx = trimmed.lastIndexOf('.');
+        if (idx > 0) {
+            return trimmed.substring(0, idx) + ".jsonl";
+        }
+        return trimmed + ".jsonl";
     }
 }

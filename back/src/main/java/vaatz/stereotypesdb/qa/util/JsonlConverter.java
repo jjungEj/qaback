@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import vaatz.stereotypesdb.qa.model.HtmlSheetData;
+
 /**
 * @ClassName	: JsonlConverter.java
 * @Description	: HTML과 이미지를 JSONL 형식으로 변환하는 유틸리티 클래스
@@ -47,7 +49,7 @@ public class JsonlConverter {
      * @param sheets 시트 데이터 리스트
      * @return JSONL 형식의 문자열 (각 줄은 한 시트를 나타냄)
      */
-    public static String toJsonl(List<ExcelToHtmlConverter.SheetData> sheets) {
+    public static String toJsonl(List<HtmlSheetData> sheets) {
         return sheets.stream()
                 .map(sheet -> toJsonlLine(sheet.getHtmlContent(), sheet.getImageBase64()))
                 .collect(Collectors.joining("\n"));
@@ -58,7 +60,7 @@ public class JsonlConverter {
      * @param sheets 시트 데이터 리스트
      * @return JSONL 형식의 바이트 배열
      */
-    public static byte[] toJsonlBytes(List<ExcelToHtmlConverter.SheetData> sheets) {
+    public static byte[] toJsonlBytes(List<HtmlSheetData> sheets) {
         return toJsonl(sheets).getBytes(StandardCharsets.UTF_8);
     }
 }

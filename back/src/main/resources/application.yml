@@ -24,3 +24,9 @@ spring:
       enabled: true
       path: /h2-console
 
+qa:
+  workspace:
+    before-path: ${QA_WORKSPACE_BEFORE:./workspace/before}
+    after-path: ${QA_WORKSPACE_AFTER:./workspace/after}
+    dev-path: C:/Dev/doc/jsonl
+

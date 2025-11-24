@@ -2,6 +2,9 @@ package vaatz.stereotypesdb.qa;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
+import vaatz.stereotypesdb.qa.config.QaWorkspaceProperties;
 
 /**
 * @ClassName	: QaApplication.java
@@ -14,6 +17,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 * 2025.11.17        정은주       	- Spring Boot 애플리케이션 초기화 및 실행
 */
 @SpringBootApplication
+@EnableConfigurationProperties(QaWorkspaceProperties.class)
 public class QaApplication {
 
     public static void main(String[] args) {
