@@ -84,7 +84,7 @@ public class FileWorkspaceService {
         Path target = folderPaths.get(WorkspaceFolderType.BEFORE).resolve(sanitized);
         try {
             Files.createDirectories(target.getParent());
-            Files.writeString(target, request.getHtmlContent(), StandardCharsets.UTF_8,
+            Files.write(target, request.getHtmlContent().getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             return toFileResponse(WorkspaceFolderType.BEFORE, target);
         } catch (IOException e) {
@@ -114,7 +114,7 @@ public class FileWorkspaceService {
                     fileName, folderPath, target));
         }
         try {
-            String content = Files.readString(target, StandardCharsets.UTF_8);
+            String content = new String(Files.readAllBytes(target), StandardCharsets.UTF_8);
             WorkspaceFileContentResponse response = new WorkspaceFileContentResponse();
             response.setFolder(folderType.getKey());
             response.setFileName(target.getFileName().toString());
