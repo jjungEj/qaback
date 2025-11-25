@@ -3,8 +3,16 @@ package vaatz.stereotypesdb.qa.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Workspace 경로를 외부 설정에서 주입받아 관리한다.
- */
+* @ClassName	: QaWorkspaceProperties.java
+* @Description	: Workspace 경로를 외부 설정에서 주입받아 관리한다.
+* @Author		: 정은주
+* @Date			: 2025.11.25
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.25        정은주       	- application.yml에서 워크스페이스 경로 설정 관리
+* 								- before, after, dev 폴더 경로 설정
+*/
 @ConfigurationProperties(prefix = "qa.workspace")
 public class QaWorkspaceProperties {
 

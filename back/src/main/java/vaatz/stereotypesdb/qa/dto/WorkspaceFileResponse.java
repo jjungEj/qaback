@@ -3,8 +3,15 @@ package vaatz.stereotypesdb.qa.dto;
 import java.time.LocalDateTime;
 
 /**
- * 워크스페이스 내 단일 파일 정보를 나타낸다.
- */
+* @ClassName	: WorkspaceFileResponse.java
+* @Description	: 워크스페이스 내 단일 파일 정보를 나타낸다.
+* @Author		: 정은주
+* @Date			: 2025.11.25
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.25        정은주       	- 파일명, 크기, 수정일시, 확장자, 절대경로 정보 응답 DTO
+*/
 public class WorkspaceFileResponse {
     private String folder;
     private String fileName;

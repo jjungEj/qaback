@@ -3,8 +3,15 @@ package vaatz.stereotypesdb.qa.dto;
 import java.time.LocalDateTime;
 
 /**
- * 파일 내용과 메타데이터를 함께 반환한다.
- */
+* @ClassName	: WorkspaceFileContentResponse.java
+* @Description	: 파일 내용과 메타데이터를 함께 반환한다.
+* @Author		: 정은주
+* @Date			: 2025.11.25
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.25        정은주       	- 파일 내용 및 메타데이터(폴더, 파일명, 크기, 수정일시) 응답 DTO
+*/
 public class WorkspaceFileContentResponse {
     private String folder;
     private String fileName;

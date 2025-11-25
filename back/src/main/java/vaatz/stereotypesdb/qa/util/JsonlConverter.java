@@ -15,11 +15,11 @@ import vaatz.stereotypesdb.qa.model.HtmlSheetData;
 * @ClassName	: JsonlConverter.java
 * @Description	: HTML과 이미지를 JSONL 형식으로 변환하는 유틸리티 클래스
 * @Author		: 정은주
-* @Date			: 2025.11.17
+* @Date			: 2025.11.25
 * ===========================================================
 * DATE              AUTHOR             NOTE
 * -----------------------------------------------------------
-* 2025.11.17        정은주       	- 시트 데이터를 JSONL 형식으로 변환
+* 2025.11.25        정은주       	- 시트 데이터를 JSONL 형식으로 변환
 * 								- 각 시트마다 한 줄씩 JSONL 형식으로 출력
 */
 public class JsonlConverter {

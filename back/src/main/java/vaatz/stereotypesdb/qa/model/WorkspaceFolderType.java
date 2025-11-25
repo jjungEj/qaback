@@ -6,8 +6,16 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Locale;
 
 /**
- * 워크스페이스 내 3개의 물리 폴더를 표현한다.
- */
+* @ClassName	: WorkspaceFolderType.java
+* @Description	: 워크스페이스 내 3개의 물리 폴더를 표현한다.
+* @Author		: 정은주
+* @Date			: 2025.11.25
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.25        정은주       	- after, before, dev 폴더 타입 enum
+* 								- 폴더 타입별 키값 및 표시명 관리
+*/
 public enum WorkspaceFolderType {
     AFTER("after", "수정 후 대기 중"),
     BEFORE("before", "수정 전"),

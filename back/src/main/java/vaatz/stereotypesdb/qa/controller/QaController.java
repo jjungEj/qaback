@@ -21,7 +21,10 @@ import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
 import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -50,23 +53,36 @@ public class QaController {
 
     /**
      * after -> before -> dev 순으로 워크스페이스 현황을 반환한다.
+     * before 폴더에만 검색 기능을 사용할 수 있다.
      */
     @GetMapping("/workspace")
     public ResponseEntity<List<WorkspaceFolderResponse>> getWorkspace(
             @RequestParam(defaultValue = "0") int afterPage,
             @RequestParam(defaultValue = "0") int beforePage,
             @RequestParam(defaultValue = "0") int devPage,
-            @RequestParam(defaultValue = "5") int size) {
-        return ResponseEntity.ok(fileWorkspaceService.getWorkspaceOverview(afterPage, beforePage, devPage, size));
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String beforeKeyword) {
+        return ResponseEntity.ok(fileWorkspaceService.getWorkspaceOverview(afterPage, beforePage, devPage, size, beforeKeyword));
     }
 
     /**
      * HTML 파일을 업로드하여 before 폴더에 저장한다.
+     * 단일 또는 다중 파일 업로드를 지원한다.
      */
     @PostMapping(value = "/files/html", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<WorkspaceFileResponse> uploadHtml(@RequestPart("file") MultipartFile file) {
-        WorkspaceFileResponse response = fileWorkspaceService.uploadHtml(file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<?> uploadHtml(@RequestPart(value = "file", required = false) MultipartFile file,
+                                        @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        // 다중 파일 업로드 우선 처리
+        if (files != null && !files.isEmpty()) {
+            List<WorkspaceFileResponse> responses = fileWorkspaceService.uploadMultipleHtml(files);
+            return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+        }
+        // 단일 파일 업로드 (하위 호환성 유지)
+        if (file != null) {
+            WorkspaceFileResponse response = fileWorkspaceService.uploadHtml(file);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "업로드할 파일이 필요합니다.");
     }
 
     /**
@@ -92,12 +108,38 @@ public class QaController {
     }
 
     /**
-     * after 폴더에 있는 JSONL을 dev 경로로 이동한다.
+     * after 폴더에 있는 JSONL을 dev 폴더로 이동한다.
+     * 여러 파일을 한 번에 처리할 수 있습니다.
+     * 
+     * 파일 이동 후, 프론트엔드에서 직접 /api/batch/start/inferenceResultJob을 호출해야 합니다.
+     * 응답으로 반환되는 파일 경로 정보를 사용하여 배치 API를 호출하세요.
      */
     @PostMapping("/files/after/promote")
-    public ResponseEntity<WorkspaceFileResponse> moveAfterToDev(@Valid @RequestBody FileMoveRequest request) {
-        WorkspaceFileResponse response = fileWorkspaceService.moveAfterToDev(request.getFileName());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> moveAfterToDev(@Valid @RequestBody FileMoveRequest request) {
+        List<String> fileList = request.getFileList();
+        
+        // 각 파일을 이동하고 배치 API 호출에 필요한 경로 정보를 반환
+        List<Map<String, String>> result = new ArrayList<>();
+        
+        for (String jsonlFileName : fileList) {
+            // 1. after 폴더에서 dev 폴더로 파일 이동
+            WorkspaceFileResponse movedFile = fileWorkspaceService.moveAfterToDev(jsonlFileName);
+            
+            // 2. dev 폴더의 jsonl 파일 경로 가져오기 (C:\Dev\doc\jsonl\file.jsonl)
+            String jsonlFilePath = movedFile.getAbsolutePath();
+            
+            // 3. maskedFilePath 생성 (jsonl 파일명에서 추론)
+            // 예: file.jsonl -> C:\Dev\doc\masked\file.xlsx
+            String maskedFilePath = fileWorkspaceService.generateMaskedFilePath(jsonlFileName);
+            
+            // 4. 프론트엔드에서 배치 API 호출에 사용할 데이터 반환
+            Map<String, String> fileData = new HashMap<>();
+            fileData.put("maskedFilePath", maskedFilePath);
+            fileData.put("jsonlFilePath", jsonlFilePath);
+            result.add(fileData);
+        }
+        
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -119,6 +161,10 @@ public class QaController {
                 .body(resource);
     }
 
+    /**
+     * HtmlUpdateRequest를 HtmlSheetData 리스트로 변환한다.
+     * @Date: 2025.11.25
+     */
     private List<HtmlSheetData> toSheetData(HtmlUpdateRequest request) {
         if (request.getSheets() == null || request.getSheets().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시트 데이터가 필요합니다.");
@@ -131,6 +177,10 @@ public class QaController {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 원본 파일명에서 JSONL 파일명을 생성한다.
+     * @Date: 2025.11.25
+     */
     private String resolveJsonlFileName(String sourceFileName) {
         if (sourceFileName == null || sourceFileName.trim().isEmpty()) {
             return "output.jsonl";

@@ -34,8 +34,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * before / after / dev 폴더 기반 파일 관리를 담당한다.
- */
+* @ClassName	: FileWorkspaceService.java
+* @Description	: before / after / dev 폴더 기반 파일 관리를 담당한다.
+* @Author		: 정은주
+* @Date			: 2025.11.25
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.25        정은주       	- before, after, dev 폴더 기반 파일 관리 서비스
+* 								- HTML 파일 업로드, 저장, 조회 기능
+* 								- JSONL 파일 저장 및 파일 이동 기능
+* 								- 워크스페이스 폴더별 파일 목록 조회 및 페이징 처리
+*/
 @Service
 public class FileWorkspaceService {
 
@@ -75,6 +85,28 @@ public class FileWorkspaceService {
         }
     }
 
+    public List<WorkspaceFileResponse> uploadMultipleHtml(List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "업로드할 HTML 파일이 필요합니다.");
+        }
+        
+        List<WorkspaceFileResponse> responses = new ArrayList<>();
+        for (MultipartFile file : files) {
+            if (file != null && !file.isEmpty()) {
+                try {
+                    WorkspaceFileResponse response = uploadHtml(file);
+                    responses.add(response);
+                } catch (Exception e) {
+                    // 개별 파일 업로드 실패 시에도 계속 진행
+                    // 필요시 에러 정보를 포함한 응답을 만들 수 있음
+                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+                        "파일 업로드 중 오류가 발생했습니다: " + file.getOriginalFilename() + " - " + e.getMessage(), e);
+                }
+            }
+        }
+        return responses;
+    }
+
     public WorkspaceFileResponse saveHtmlContent(String fileName, HtmlFileSaveRequest request) {
         String sanitized = sanitizeFileName(fileName);
         validateHtmlExtension(sanitized);
@@ -92,16 +124,16 @@ public class FileWorkspaceService {
         }
     }
 
-    public List<WorkspaceFolderResponse> getWorkspaceOverview(int afterPage, int beforePage, int devPage, int size) {
+    public List<WorkspaceFolderResponse> getWorkspaceOverview(int afterPage, int beforePage, int devPage, int size, String beforeKeyword) {
         int validatedSize = normalizeSize(size);
         int afterPageSafe = normalizePage(afterPage);
         int beforePageSafe = normalizePage(beforePage);
         int devPageSafe = normalizePage(devPage);
 
         List<WorkspaceFolderResponse> result = new ArrayList<>();
-        result.add(buildFolderResponse(WorkspaceFolderType.AFTER, afterPageSafe, validatedSize));
-        result.add(buildFolderResponse(WorkspaceFolderType.BEFORE, beforePageSafe, validatedSize));
-        result.add(buildFolderResponse(WorkspaceFolderType.DEV, devPageSafe, validatedSize));
+        result.add(buildFolderResponse(WorkspaceFolderType.AFTER, afterPageSafe, validatedSize, null));
+        result.add(buildFolderResponse(WorkspaceFolderType.BEFORE, beforePageSafe, validatedSize, beforeKeyword));
+        result.add(buildFolderResponse(WorkspaceFolderType.DEV, devPageSafe, validatedSize, null));
         return result;
     }
 
@@ -153,10 +185,44 @@ public class FileWorkspaceService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Dev 폴더 이동에 실패했습니다.", e);
         }
     }
+    
+    /**
+     * after 폴더의 파일 경로를 반환한다.
+     */
+    public Path getAfterFilePath(String fileName) {
+        Path filePath = resolve(WorkspaceFolderType.AFTER, fileName);
+        if (!Files.exists(filePath)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "after 폴더에서 파일을 찾을 수 없습니다: " + fileName);
+        }
+        return filePath;
+    }
+    
+    /**
+     * jsonl 파일명에서 masked 파일 경로를 생성한다.
+     * 예: file.jsonl -> C:\Dev\doc\masked\file.xlsx
+     */
+    public String generateMaskedFilePath(String jsonlFileName) {
+        String baseName = jsonlFileName;
+        int idx = baseName.lastIndexOf('.');
+        if (idx > 0) {
+            baseName = baseName.substring(0, idx);
+        }
+        // 기본 경로: C:\Dev\doc\masked\{파일명}.xlsx
+        return "C:\\Dev\\doc\\masked\\" + baseName + ".xlsx";
+    }
 
-    private WorkspaceFolderResponse buildFolderResponse(WorkspaceFolderType type, int requestedPage, int size) {
+    private WorkspaceFolderResponse buildFolderResponse(WorkspaceFolderType type, int requestedPage, int size, String keyword) {
         Path folderPath = folderPaths.get(type);
         List<WorkspaceFileResponse> allFiles = loadFiles(type, folderPath);
+        
+        // before 폴더에만 검색 기능 적용
+        if (keyword != null && !keyword.trim().isEmpty() && type == WorkspaceFolderType.BEFORE) {
+            String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+            allFiles = allFiles.stream()
+                    .filter(file -> file.getFileName().toLowerCase(Locale.ROOT).contains(lowerKeyword))
+                    .collect(Collectors.toList());
+        }
+        
         int totalElements = allFiles.size();
 
         int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);

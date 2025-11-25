@@ -3,8 +3,15 @@ package vaatz.stereotypesdb.qa.dto;
 import java.util.List;
 
 /**
- * 워크스페이스 폴더 단위 응답 DTO.
- */
+* @ClassName	: WorkspaceFolderResponse.java
+* @Description	: 워크스페이스 폴더 단위 응답 DTO.
+* @Author		: 정은주
+* @Date			: 2025.11.25
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.25        정은주       	- 폴더별 파일 목록 및 페이징 정보 응답 DTO
+*/
 public class WorkspaceFolderResponse {
     private String folder;
     private String displayName;
