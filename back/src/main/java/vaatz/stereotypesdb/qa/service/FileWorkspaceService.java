@@ -1,20 +1,5 @@
 package vaatz.stereotypesdb.qa.service;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
-import vaatz.stereotypesdb.qa.config.QaWorkspaceProperties;
-import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
-import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
-import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
-import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
-import vaatz.stereotypesdb.qa.model.HtmlSheetData;
-import vaatz.stereotypesdb.qa.model.JsonlFileMetadata;
-import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
-import vaatz.stereotypesdb.qa.util.JsonlConverter;
-
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
@@ -30,12 +15,25 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import vaatz.stereotypesdb.qa.config.QaWorkspaceProperties;
+import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
+import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
 
 /**
 * @ClassName	: FileWorkspaceService.java
@@ -73,7 +71,10 @@ public class FileWorkspaceService {
         });
     }
 
-    public WorkspaceFileResponse uploadHtml(MultipartFile file) {
+    /**
+     * uploadHtml, uploadMultipleHtml before 폴더에 파일 복사
+     */
+    public WorkspaceFileResponse uploadHtml(MultipartFile file) { 
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "업로드할 HTML 파일이 필요합니다.");
         }
@@ -111,6 +112,9 @@ public class FileWorkspaceService {
         return responses;
     }
 
+    /**
+     * before 폴더에 문자열 저장
+     */
     public WorkspaceFileResponse saveHtmlContent(String fileName, HtmlFileSaveRequest request) {
         String sanitized = sanitizeFileName(fileName);
         validateHtmlExtension(sanitized);
@@ -128,6 +132,9 @@ public class FileWorkspaceService {
         }
     }
 
+    /**
+     * after, before, dev 각각 buildFolderResponse 호출
+     */
     public List<WorkspaceFolderResponse> getWorkspaceOverview(int afterPage, int beforePage, int devPage, int size, String beforeKeyword) {
         int validatedSize = normalizeSize(size);
         int afterPageSafe = normalizePage(afterPage);
@@ -141,6 +148,9 @@ public class FileWorkspaceService {
         return result;
     }
 
+    /**
+     * 폴더, 파일 존재 여부 확인 후 내용을 반환
+     */
     public WorkspaceFileContentResponse readFile(WorkspaceFolderType folderType, String fileName) {
         Path target = resolve(folderType, fileName);
         if (!Files.exists(target)) {
@@ -165,43 +175,22 @@ public class FileWorkspaceService {
     }
 
     /**
-     * 시트별 JSONL 파일을 after 폴더에 저장한다.
+     * jsonl byte를 after 폴더에 기록
      */
-    public List<JsonlFileMetadata> saveJsonlFilesBySheet(List<HtmlSheetData> sheets) {
-        if (sheets == null || sheets.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "변환할 시트 데이터가 필요합니다.");
+    public void saveJsonlToAfter(String fileName, byte[] payload) {
+        String sanitized = sanitizeFileName(fileName);
+        validateJsonlExtension(sanitized);
+        Path target = folderPaths.get(WorkspaceFolderType.AFTER).resolve(sanitized);
+        try {
+            Files.write(target, payload, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "JSONL 저장에 실패했습니다.", e);
         }
-
-        Path afterFolder = folderPaths.get(WorkspaceFolderType.AFTER);
-        Map<String, Integer> nameCounts = new HashMap<>();
-        List<JsonlFileMetadata> generatedFiles = new ArrayList<>();
-
-        for (HtmlSheetData sheet : sheets) {
-            String sheetName = sheet.getSheetName();
-            if (sheetName == null || sheetName.trim().isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시트명은 빈 값일 수 없습니다.");
-            }
-
-            String normalizedBase = sanitizeFileName(sheetName.trim());
-            String uniqueBase = generateUniqueBaseName(normalizedBase, nameCounts);
-            String finalFileName = ensureJsonlExtension(uniqueBase);
-
-            Path target = afterFolder.resolve(finalFileName);
-            byte[] payload = JsonlConverter.toJsonlLine(sheet.getHtmlContent(), sheet.getImageBase64())
-                    .getBytes(StandardCharsets.UTF_8);
-            try {
-                Files.write(target, payload, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            } catch (IOException e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "JSONL 저장에 실패했습니다: " + finalFileName, e);
-            }
-
-            generatedFiles.add(new JsonlFileMetadata(finalFileName, target.toString()));
-        }
-
-        return generatedFiles;
     }
 
+    /**
+     * after -> dev 이동
+     */
     public WorkspaceFileResponse moveAfterToDev(String fileName) {
         Path source = resolve(WorkspaceFolderType.AFTER, fileName);
         if (!Files.exists(source)) {
@@ -239,6 +228,7 @@ public class FileWorkspaceService {
             baseName = baseName.substring(0, idx);
         }
         // 기본 경로: C:\Dev\doc\masked\{파일명}.xlsx
+        // 실제 파일 생성 없음 (로컬에 masked (마스킹문서) 있어야됨)
         return "C:\\Dev\\doc\\masked\\" + baseName + ".xlsx";
     }
 
@@ -370,25 +360,6 @@ public class FileWorkspaceService {
         return fileName.substring(idx + 1).toLowerCase(Locale.ROOT);
     }
 
-    private String ensureJsonlExtension(String baseName) {
-        if (baseName.toLowerCase(Locale.ROOT).endsWith(".jsonl")) {
-            validateJsonlExtension(baseName);
-            return baseName;
-        }
-        String candidate = baseName + ".jsonl";
-        validateJsonlExtension(candidate);
-        return candidate;
-    }
-
-    private String generateUniqueBaseName(String baseName, Map<String, Integer> nameCounts) {
-        int count = nameCounts.getOrDefault(baseName, 0);
-        nameCounts.put(baseName, count + 1);
-        if (count == 0) {
-            return baseName;
-        }
-        return baseName + "_" + count;
-    }
-
     private LocalDateTime toLocalDateTime(FileTime fileTime) {
         return LocalDateTime.ofInstant(fileTime.toInstant(), ZoneId.systemDefault());
     }
@@ -400,4 +371,3 @@ public class FileWorkspaceService {
         return Paths.get(input).toAbsolutePath().normalize();
     }
 }
-
