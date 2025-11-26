@@ -4,9 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import vaatz.stereotypesdb.qa.model.HtmlSheetData;
@@ -62,6 +65,52 @@ public class JsonlConverter {
      */
     public static byte[] toJsonlBytes(List<HtmlSheetData> sheets) {
         return toJsonl(sheets).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * HTML 내용에서 테이블 태그를 추출한다.
+     * 
+     * 하나의 HTML에 여러 개의 <table> 태그가 포함된 경우, 각 테이블을 개별적으로 추출하여 리스트로 반환한다.
+     * 예: "<table>테이블1</table><table>테이블2</table>" -> ["<table>테이블1</table>", "<table>테이블2</table>"]
+     * 
+     * @param htmlContent HTML 내용 (여러 테이블이 포함될 수 있음)
+     * @return 테이블 태그 리스트 (각 테이블은 완전한 <table>...</table> 형태)
+     *         테이블이 없거나 HTML이 비어있으면 빈 리스트 반환
+     */
+    public static List<String> extractTables(String htmlContent) {
+        if (htmlContent == null || htmlContent.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<String> tables = new ArrayList<>();
+        // <table> 태그를 찾기 위한 정규식
+        // - <table[^>]*>: <table> 태그 시작 (속성 포함)
+        // - .*?: 태그 내용 (비탐욕적 매칭)
+        // - </table>: 태그 종료
+        // Pattern.DOTALL: .이 개행문자도 매칭하도록 설정
+        // Pattern.CASE_INSENSITIVE: 대소문자 구분 안 함
+        Pattern pattern = Pattern.compile("<table[^>]*>.*?</table>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(htmlContent);
+
+        // 모든 매칭되는 테이블을 리스트에 추가
+        while (matcher.find()) {
+            tables.add(matcher.group());
+        }
+
+        return tables;
+    }
+
+    /**
+     * HTML 내용에서 테이블 개수를 센다.
+     * 
+     * extractTables() 메서드를 사용하여 테이블을 추출한 후 개수를 반환한다.
+     * 테이블이 2개 이상인 경우 JSONL 변환 시 각 테이블을 별도 라인으로 분리하는데 사용된다.
+     * 
+     * @param htmlContent HTML 내용
+     * @return 테이블 개수 (0개 이상)
+     */
+    public static int countTables(String htmlContent) {
+        return extractTables(htmlContent).size();
     }
 }
 

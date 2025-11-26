@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
@@ -175,18 +174,73 @@ public class QaController {
 
     /**
      * HtmlUpdateRequest를 HtmlSheetData 리스트로 변환한다.
-     *
+     * 
+     * 변환 규칙:
+     * 1. 테이블이 1개인 경우: 기존 방식 유지 (하나의 HtmlSheetData로 변환)
+     * 2. 테이블이 2개 이상인 경우: 각 테이블을 별도의 HtmlSheetData로 분리
+     *    - 각 테이블마다 시트명에 번호가 자동 추가됨 (예: "클러스터" -> "클러스터1", "클러스터2", "클러스터3")
+     *    - 각 테이블별로 별도의 이미지 사용 (imageBase64List 제공 시)
+     *    - imageBase64List가 없으면 원본 imageBase64를 모든 테이블에 공유 (하위 호환성)
+     * 
+     * 결과: 각 HtmlSheetData는 JSONL 파일의 한 줄이 됨
+     * 
+     * @Date: 2025.11.25
      */
     private List<HtmlSheetData> toSheetData(HtmlUpdateRequest request) {
         if (request.getSheets() == null || request.getSheets().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시트 데이터가 필요합니다.");
         }
-        return request.getSheets().stream()
-                .map(sheet -> new HtmlSheetData(
+        
+        List<HtmlSheetData> result = new ArrayList<>();
+        
+        for (HtmlUpdateRequest.SheetHtmlUpdate sheet : request.getSheets()) {
+            String htmlContent = sheet.getHtmlContent();
+            // HTML 내용에서 테이블 개수 확인
+            int tableCount = JsonlConverter.countTables(htmlContent);
+            
+            // 테이블이 2개 이상인 경우: 각 테이블을 별도의 HtmlSheetData로 분리
+            if (tableCount >= 2) {
+                // HTML에서 모든 테이블 태그 추출
+                List<String> tables = JsonlConverter.extractTables(htmlContent);
+                // 프론트엔드에서 제공한 각 테이블별 이미지 리스트 (null일 수 있음)
+                List<String> imageList = sheet.getImageBase64List();
+                
+                // 각 테이블에 대해 반복 처리
+                for (int i = 0; i < tables.size(); i++) {
+                    String tableHtml = tables.get(i);
+                    
+                    // 시트명에 번호 추가
+                    // 예: 원본 시트명이 "클러스터"이고 테이블이 3개인 경우
+                    //     -> "클러스터1", "클러스터2", "클러스터3"
+                    String sheetName = sheet.getSheetName() + (i + 1);
+                    
+                    // 각 테이블별 이미지 결정
+                    // 1순위: imageBase64List에서 해당 인덱스의 이미지 사용 (프론트엔드에서 각 테이블별 이미지 제공 시)
+                    // 2순위: imageBase64 사용 (하위 호환성: 원본 이미지를 모든 테이블에 공유)
+                    String tableImage = null;
+                    if (imageList != null && imageList.size() > i) {
+                        // 각 테이블별 별도 이미지 사용
+                        tableImage = imageList.get(i);
+                    } else {
+                        // 하위 호환성: 원본 이미지를 모든 테이블에 공유
+                        tableImage = sheet.getImageBase64();
+                    }
+                    
+                    // 분리된 테이블을 별도의 HtmlSheetData로 생성
+                    // 이 데이터는 JSONL 파일의 한 줄이 됨
+                    result.add(new HtmlSheetData(sheetName, tableHtml, tableImage));
+                }
+            } else {
+                // 테이블이 1개인 경우: 기존 방식 유지
+                // 하나의 HtmlSheetData로 변환 (시트명 번호 추가 없음)
+                result.add(new HtmlSheetData(
                         sheet.getSheetName(),
                         sheet.getHtmlContent(),
-                        sheet.getImageBase64()))
-                .collect(Collectors.toList());
+                        sheet.getImageBase64()));
+            }
+        }
+        
+        return result;
     }
 
     /**
