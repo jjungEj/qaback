@@ -1,30 +1,43 @@
 package vaatz.stereotypesdb.qa.controller;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
-import vaatz.stereotypesdb.qa.dto.FileMoveRequest;
-import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
-import vaatz.stereotypesdb.qa.dto.HtmlUpdateRequest;
-import vaatz.stereotypesdb.qa.dto.JsonlGenerationResponse;
-import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
-import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
-import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
-import vaatz.stereotypesdb.qa.model.HtmlSheetData;
-import vaatz.stereotypesdb.qa.model.JsonlFileMetadata;
-import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
-import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
-
-import javax.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.validation.Valid;
+
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import vaatz.stereotypesdb.qa.dto.FileMoveRequest;
+import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
+import vaatz.stereotypesdb.qa.dto.HtmlUpdateRequest;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
+import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
+import vaatz.stereotypesdb.qa.model.HtmlSheetData;
+import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
+import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
+import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
 /**
 * @ClassName	: QaController.java
@@ -102,16 +115,16 @@ public class QaController {
     public ResponseEntity<WorkspaceFileContentResponse> readFile(
             @PathVariable String folder,
             @PathVariable String fileName) {
-        WorkspaceFolderType folderType = WorkspaceFolderType.from(folder);
+        WorkspaceFolderType folderType = WorkspaceFolderType.from(folder); //folder 문자열을 workspaceFolderType으로 변환해서 해당 파일 읽기
         return ResponseEntity.ok(fileWorkspaceService.readFile(folderType, fileName));
     }
 
     /**
-     * after 폴더에 있는 JSONL을 dev 폴더로 이동한다.
-     * 여러 파일을 한 번에 처리할 수 있습니다.
+     * after 폴더에 있는 JSONL을 dev 폴더로 이동
+     * 여러 파일을 한 번에 처리
      * 
-     * 파일 이동 후, 프론트엔드에서 직접 /api/batch/start/inferenceResultJob을 호출해야 합니다.
-     * 응답으로 반환되는 파일 경로 정보를 사용하여 배치 API를 호출하세요.
+     * 파일 이동 후, 프론트엔드에서 직접 /api/batch/start/inferenceResultJob을 호출
+     * 응답으로 반환되는 파일 경로 정보를 사용하여 배치 API를 호출
      */
     @PostMapping("/files/after/promote")
     public ResponseEntity<?> moveAfterToDev(@Valid @RequestBody FileMoveRequest request) {
@@ -142,24 +155,27 @@ public class QaController {
     }
 
     /**
-     * 수정된 HTML 테이블을 JSONL로 변환하고 시트별 JSONL을 after 폴더에 저장한다.
+     * 수정된 HTML 테이블을 JSONL로 변환하고 after 폴더에 동일 파일을 저장한다.
      */
-    @PostMapping("/convert/jsonl")
-    public ResponseEntity<JsonlGenerationResponse> convertToJsonl(@Valid @RequestBody HtmlUpdateRequest request) {
+    @PostMapping("/convert/jsonl") //HtmlUpdateRequest -> HtmlSheetsData 리스트로 변환
+    public ResponseEntity<ByteArrayResource> convertToJsonl(@Valid @RequestBody HtmlUpdateRequest request) {
         List<HtmlSheetData> sheets = toSheetData(request);
-        List<JsonlFileMetadata> generatedFiles = fileWorkspaceService.saveJsonlFilesBySheet(sheets);
-
-        List<JsonlGenerationResponse.FileEntry> fileEntries = generatedFiles.stream()
-                .map(meta -> new JsonlGenerationResponse.FileEntry(meta.getFileName(), meta.getAbsolutePath()))
-                .collect(Collectors.toList());
-
-        JsonlGenerationResponse response = new JsonlGenerationResponse(fileEntries);
-        return ResponseEntity.ok(response);
+        byte[] jsonlBytes = JsonlConverter.toJsonlBytes(sheets);
+        ByteArrayResource resource = new ByteArrayResource(jsonlBytes);
+        //jsonl bytes, jsonlFileName 원본 파일
+        String jsonlFileName = resolveJsonlFileName(request.getFileName());
+        fileWorkspaceService.saveJsonlToAfter(jsonlFileName, jsonlBytes);
+        ContentDisposition disposition = ContentDisposition.attachment().filename(jsonlFileName,StandardCharsets.UTF_8).build();  
+        return ResponseEntity.ok() //Tomcat 한글 제목 인코딩 오류 수정
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,disposition.toString())
+                .contentLength(jsonlBytes.length)
+                .body(resource);
     }
 
     /**
      * HtmlUpdateRequest를 HtmlSheetData 리스트로 변환한다.
-     * @Date: 2025.11.25
+     *
      */
     private List<HtmlSheetData> toSheetData(HtmlUpdateRequest request) {
         if (request.getSheets() == null || request.getSheets().isEmpty()) {
@@ -173,4 +189,19 @@ public class QaController {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 원본 파일명에서 JSONL 파일명을 생성한다.
+     * 
+     */
+    private String resolveJsonlFileName(String sourceFileName) {
+        if (sourceFileName == null || sourceFileName.trim().isEmpty()) {
+            return "output.jsonl"; //기본 값
+        }
+        String trimmed = sourceFileName.trim();
+        int idx = trimmed.lastIndexOf('.');
+        if (idx > 0) {
+            return trimmed.substring(0, idx) + ".jsonl";
+        }
+        return trimmed + ".jsonl"; //원본 파일명에서 .jsonl로 교체 
+    }
 }
