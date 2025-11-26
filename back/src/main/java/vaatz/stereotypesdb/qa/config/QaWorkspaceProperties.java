@@ -31,6 +31,11 @@ public class QaWorkspaceProperties {
      */
     private String devPath = "./workspace/dev";
 
+    /**
+     * 마스킹된 파일을 참조하는 경로.
+     */
+    private String maskedPath = "./workspace/masked";
+
     public String getBeforePath() {
         return beforePath;
     }
@@ -53,6 +58,14 @@ public class QaWorkspaceProperties {
 
     public void setDevPath(String devPath) {
         this.devPath = devPath;
+    }
+
+    public String getMaskedPath() {
+        return maskedPath;
+    }
+
+    public void setMaskedPath(String maskedPath) {
+        this.maskedPath = maskedPath;
     }
 }
 

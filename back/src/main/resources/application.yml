@@ -29,4 +29,5 @@ qa:
     before-path: ${QA_WORKSPACE_BEFORE:./workspace/before}
     after-path: ${QA_WORKSPACE_AFTER:./workspace/after}
     dev-path: C:/Dev/doc/jsonl
+    masked-path: C:/Dev/doc/masked
 
