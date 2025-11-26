@@ -1,6 +1,7 @@
 package vaatz.stereotypesdb.qa.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
 * @ClassName	: QaWorkspaceProperties.java
@@ -13,7 +14,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 * 2025.11.25        정은주       	- application.yml에서 워크스페이스 경로 설정 관리
 * 								- before, after, dev 폴더 경로 설정
 */
+
+// 각 폴더의 기본 경로 저장, yml 값으로 덮어짐
 @ConfigurationProperties(prefix = "qa.workspace")
+@Component
 public class QaWorkspaceProperties {
 
     /**
@@ -30,12 +34,13 @@ public class QaWorkspaceProperties {
      * 외부 DB(Dev)로 전달될 최종 경로.
      */
     private String devPath = "./workspace/dev";
-
+    
     /**
-     * 마스킹된 파일을 참조하는 경로.
+     * maked 파일경로
      */
-    private String maskedPath = "./workspace/masked";
-
+    private String maskedpath = "./workspace/masked";
+    
+    //getter, setter 만 존재 service 쪽에서 경로를 읽어 directory 준비
     public String getBeforePath() {
         return beforePath;
     }
@@ -59,13 +64,12 @@ public class QaWorkspaceProperties {
     public void setDevPath(String devPath) {
         this.devPath = devPath;
     }
-
-    public String getMaskedPath() {
-        return maskedPath;
+    
+    public String getMaskedpath() {
+        return maskedpath;
     }
 
-    public void setMaskedPath(String maskedPath) {
-        this.maskedPath = maskedPath;
+    public void setMaskedpath(String maskedpath) {
+        this.maskedpath = maskedpath;
     }
 }
-
