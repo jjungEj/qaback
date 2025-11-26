@@ -9,7 +9,10 @@ import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
+import vaatz.stereotypesdb.qa.model.HtmlSheetData;
+import vaatz.stereotypesdb.qa.model.JsonlFileMetadata;
 import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
+import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -27,6 +30,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -160,15 +164,42 @@ public class FileWorkspaceService {
         }
     }
 
-    public void saveJsonlToAfter(String fileName, byte[] payload) {
-        String sanitized = sanitizeFileName(fileName);
-        validateJsonlExtension(sanitized);
-        Path target = folderPaths.get(WorkspaceFolderType.AFTER).resolve(sanitized);
-        try {
-            Files.write(target, payload, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "JSONL 저장에 실패했습니다.", e);
+    /**
+     * 시트별 JSONL 파일을 after 폴더에 저장한다.
+     */
+    public List<JsonlFileMetadata> saveJsonlFilesBySheet(List<HtmlSheetData> sheets) {
+        if (sheets == null || sheets.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "변환할 시트 데이터가 필요합니다.");
         }
+
+        Path afterFolder = folderPaths.get(WorkspaceFolderType.AFTER);
+        Map<String, Integer> nameCounts = new HashMap<>();
+        List<JsonlFileMetadata> generatedFiles = new ArrayList<>();
+
+        for (HtmlSheetData sheet : sheets) {
+            String sheetName = sheet.getSheetName();
+            if (sheetName == null || sheetName.trim().isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시트명은 빈 값일 수 없습니다.");
+            }
+
+            String normalizedBase = sanitizeFileName(sheetName.trim());
+            String uniqueBase = generateUniqueBaseName(normalizedBase, nameCounts);
+            String finalFileName = ensureJsonlExtension(uniqueBase);
+
+            Path target = afterFolder.resolve(finalFileName);
+            byte[] payload = JsonlConverter.toJsonlLine(sheet.getHtmlContent(), sheet.getImageBase64())
+                    .getBytes(StandardCharsets.UTF_8);
+            try {
+                Files.write(target, payload, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (IOException e) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "JSONL 저장에 실패했습니다: " + finalFileName, e);
+            }
+
+            generatedFiles.add(new JsonlFileMetadata(finalFileName, target.toString()));
+        }
+
+        return generatedFiles;
     }
 
     public WorkspaceFileResponse moveAfterToDev(String fileName) {
@@ -337,6 +368,25 @@ public class FileWorkspaceService {
             return "";
         }
         return fileName.substring(idx + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private String ensureJsonlExtension(String baseName) {
+        if (baseName.toLowerCase(Locale.ROOT).endsWith(".jsonl")) {
+            validateJsonlExtension(baseName);
+            return baseName;
+        }
+        String candidate = baseName + ".jsonl";
+        validateJsonlExtension(candidate);
+        return candidate;
+    }
+
+    private String generateUniqueBaseName(String baseName, Map<String, Integer> nameCounts) {
+        int count = nameCounts.getOrDefault(baseName, 0);
+        nameCounts.put(baseName, count + 1);
+        if (count == 0) {
+            return baseName;
+        }
+        return baseName + "_" + count;
     }
 
     private LocalDateTime toLocalDateTime(FileTime fileTime) {

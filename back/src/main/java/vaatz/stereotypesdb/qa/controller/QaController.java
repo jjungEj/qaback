@@ -1,7 +1,5 @@
 package vaatz.stereotypesdb.qa.controller;
 
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,13 +10,14 @@ import org.springframework.web.server.ResponseStatusException;
 import vaatz.stereotypesdb.qa.dto.FileMoveRequest;
 import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
 import vaatz.stereotypesdb.qa.dto.HtmlUpdateRequest;
+import vaatz.stereotypesdb.qa.dto.JsonlGenerationResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
 import vaatz.stereotypesdb.qa.model.HtmlSheetData;
+import vaatz.stereotypesdb.qa.model.JsonlFileMetadata;
 import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
 import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
-import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
@@ -143,22 +142,19 @@ public class QaController {
     }
 
     /**
-     * 수정된 HTML 테이블을 JSONL로 변환하고 after 폴더에 동일 파일을 저장한다.
+     * 수정된 HTML 테이블을 JSONL로 변환하고 시트별 JSONL을 after 폴더에 저장한다.
      */
     @PostMapping("/convert/jsonl")
-    public ResponseEntity<ByteArrayResource> convertToJsonl(@Valid @RequestBody HtmlUpdateRequest request) {
+    public ResponseEntity<JsonlGenerationResponse> convertToJsonl(@Valid @RequestBody HtmlUpdateRequest request) {
         List<HtmlSheetData> sheets = toSheetData(request);
-        byte[] jsonlBytes = JsonlConverter.toJsonlBytes(sheets);
-        ByteArrayResource resource = new ByteArrayResource(jsonlBytes);
+        List<JsonlFileMetadata> generatedFiles = fileWorkspaceService.saveJsonlFilesBySheet(sheets);
 
-        String jsonlFileName = resolveJsonlFileName(request.getFileName());
-        fileWorkspaceService.saveJsonlToAfter(jsonlFileName, jsonlBytes);
+        List<JsonlGenerationResponse.FileEntry> fileEntries = generatedFiles.stream()
+                .map(meta -> new JsonlGenerationResponse.FileEntry(meta.getFileName(), meta.getAbsolutePath()))
+                .collect(Collectors.toList());
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + jsonlFileName + "\"")
-                .contentLength(jsonlBytes.length)
-                .body(resource);
+        JsonlGenerationResponse response = new JsonlGenerationResponse(fileEntries);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -177,19 +173,4 @@ public class QaController {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 원본 파일명에서 JSONL 파일명을 생성한다.
-     * @Date: 2025.11.25
-     */
-    private String resolveJsonlFileName(String sourceFileName) {
-        if (sourceFileName == null || sourceFileName.trim().isEmpty()) {
-            return "output.jsonl";
-        }
-        String trimmed = sourceFileName.trim();
-        int idx = trimmed.lastIndexOf('.');
-        if (idx > 0) {
-            return trimmed.substring(0, idx) + ".jsonl";
-        }
-        return trimmed + ".jsonl";
-    }
 }
