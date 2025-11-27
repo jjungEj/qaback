@@ -36,6 +36,7 @@ import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
 import vaatz.stereotypesdb.qa.model.HtmlSheetData;
 import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
 import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
+import vaatz.stereotypesdb.qa.util.HtmlTableSanitizer;
 import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
 /**
@@ -194,7 +195,7 @@ public class QaController {
         List<HtmlSheetData> result = new ArrayList<>();
 
         for (HtmlUpdateRequest.SheetHtmlUpdate sheet : request.getSheets()) {
-            String htmlContent = sheet.getHtmlContent();
+            String htmlContent = HtmlTableSanitizer.normalize(sheet.getHtmlContent());
             List<JsonlConverter.TableSegment> tableSegments = JsonlConverter.extractHeadingTableSegments(htmlContent);
 
             if (tableSegments.isEmpty()) {
