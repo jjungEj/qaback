@@ -20,6 +20,7 @@ public final class HtmlTableSanitizer {
     private static final Pattern TABLE_PATTERN = Pattern.compile("(?i)<table([^>]*)>");
     private static final Pattern STYLE_DOUBLE_PATTERN = Pattern.compile("(?i)style\\s*=\\s*\"([^\"]*)\"");
     private static final Pattern STYLE_SINGLE_PATTERN = Pattern.compile("(?i)style\\s*=\\s*'([^']*)'");
+    private static final Pattern ESCAPED_QUOTE_PATTERN = Pattern.compile("\\\\([\"'])");
 
     private HtmlTableSanitizer() {
     }
@@ -53,7 +54,7 @@ public final class HtmlTableSanitizer {
     }
 
     private static String enrichAttributes(String attrs) {
-        String attrPortion = attrs == null ? "" : attrs;
+        String attrPortion = normalizeEscapedQuotes(attrs);
         attrPortion = ensureStyle(attrPortion);
         String lower = attrPortion.toLowerCase(Locale.ROOT);
 
@@ -98,6 +99,19 @@ public final class HtmlTableSanitizer {
             return styleAttr;
         }
         return current + styleAttr;
+    }
+
+    /**
+     * 백슬래시로 이스케이프된 따옴표를 실제 따옴표로 되돌린다.
+     */
+    private static String normalizeEscapedQuotes(String attrs) {
+        if (attrs == null) {
+            return "";
+        }
+        if (attrs.isEmpty() || attrs.indexOf('\\') < 0) {
+            return attrs;
+        }
+        return ESCAPED_QUOTE_PATTERN.matcher(attrs).replaceAll("$1");
     }
 
     private static String appendStyleRules(String styleValue) {
