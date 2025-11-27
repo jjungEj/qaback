@@ -195,7 +195,7 @@ public class QaController {
         
         for (HtmlUpdateRequest.SheetHtmlUpdate sheet : request.getSheets()) {
             String htmlContent = sheet.getHtmlContent();
-            List<JsonlConverter.TableSegment> tableSegments = JsonlConverter.extractTableSegments(htmlContent);
+            List<JsonlConverter.TableSegment> tableSegments = JsonlConverter.extractHeadingTableSegments(htmlContent);
             int tableCount = tableSegments.size();
             
             // 테이블이 2개 이상인 경우: 각 테이블을 별도의 HtmlSheetData로 분리
