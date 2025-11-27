@@ -34,6 +34,7 @@ import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
 import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
+import vaatz.stereotypesdb.qa.util.HtmlTableSanitizer;
 
 /**
 * @ClassName	: FileWorkspaceService.java
@@ -122,9 +123,10 @@ public class FileWorkspaceService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "저장할 HTML 내용이 필요합니다.");
         }
         Path target = folderPaths.get(WorkspaceFolderType.BEFORE).resolve(sanitized);
+        String normalizedHtml = HtmlTableSanitizer.normalize(request.getHtmlContent());
         try {
             Files.createDirectories(target.getParent());
-            Files.write(target, request.getHtmlContent().getBytes(StandardCharsets.UTF_8),
+            Files.write(target, normalizedHtml.getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             return toFileResponse(WorkspaceFolderType.BEFORE, target);
         } catch (IOException e) {
