@@ -192,51 +192,33 @@ public class QaController {
         }
         
         List<HtmlSheetData> result = new ArrayList<>();
-        
+
         for (HtmlUpdateRequest.SheetHtmlUpdate sheet : request.getSheets()) {
             String htmlContent = sheet.getHtmlContent();
             List<JsonlConverter.TableSegment> tableSegments = JsonlConverter.extractHeadingTableSegments(htmlContent);
-            int tableCount = tableSegments.size();
-            
-            // 테이블이 2개 이상인 경우: 각 테이블을 별도의 HtmlSheetData로 분리
-            if (tableCount >= 2) {
-                // 프론트엔드에서 제공한 각 테이블별 이미지 리스트 (null일 수 있음)
-                List<String> imageList = sheet.getImageBase64List();
-                
-                // 각 테이블에 대해 반복 처리
-                for (int i = 0; i < tableSegments.size(); i++) {
-                    String singleTableHtml = buildHtmlWithSingleTable(htmlContent, tableSegments, i);
-                    
-                    // 시트명에 번호 추가
-                    // 예: 원본 시트명이 "클러스터"이고 테이블이 3개인 경우
-                    //     -> "클러스터1", "클러스터2", "클러스터3"
-                    String sheetName = sheet.getSheetName() + (i + 1);
-                    
-                    // 각 테이블별 이미지 결정
-                    // 1순위: imageBase64List에서 해당 인덱스의 이미지 사용 (프론트엔드에서 각 테이블별 이미지 제공 시)
-                    // 2순위: imageBase64 사용 (하위 호환성: 원본 이미지를 모든 테이블에 공유)
-                    String tableImage = null;
-                    if (imageList != null && imageList.size() > i) {
-                        // 각 테이블별 별도 이미지 사용
-                        tableImage = imageList.get(i);
-                    } else {
-                        // 하위 호환성: 원본 이미지를 모든 테이블에 공유
-                        tableImage = sheet.getImageBase64();
-                    }
-                    // 분리된 테이블을 별도의 HtmlSheetData로 생성
-                    // 이 데이터는 JSONL 파일의 한 줄이 됨
-                    result.add(new HtmlSheetData(sheetName, singleTableHtml, tableImage));
-                }
-            } else {
-                // 테이블이 1개인 경우: 기존 방식 유지
-                // 하나의 HtmlSheetData로 변환 (시트명 번호 추가 없음)
+
+            if (tableSegments.isEmpty()) {
+                // 테이블이 전혀 없으면 원본 HTML을 그대로 사용
                 result.add(new HtmlSheetData(
                         sheet.getSheetName(),
-                        sheet.getHtmlContent(),
+                        htmlContent,
                         sheet.getImageBase64()));
+                continue;
+            }
+
+            List<String> imageList = sheet.getImageBase64List();
+            for (int i = 0; i < tableSegments.size(); i++) {
+                String sheetName = tableSegments.size() >= 2
+                        ? sheet.getSheetName() + (i + 1)
+                        : sheet.getSheetName();
+                String tableImage = (imageList != null && imageList.size() > i)
+                        ? imageList.get(i)
+                        : sheet.getImageBase64();
+                String minimalHtml = extractMinimalTableHtml(tableSegments.get(i).getHtml());
+                result.add(new HtmlSheetData(sheetName, minimalHtml, tableImage));
             }
         }
-        
+
         return result;
     }
 
@@ -257,40 +239,13 @@ public class QaController {
     }
 
     /**
-     * 다중 테이블 HTML에서 지정된 테이블만 남기고 전체 DOCTYPE/HEAD 구조를 유지한다.
+     * <table>...</table> 블록만 추출한다. (필요 시 h2 등 다른 태그를 제거)
      */
-    private String buildHtmlWithSingleTable(String originalHtml, List<JsonlConverter.TableSegment> segments, int targetIndex) {
-        if (originalHtml == null) {
-            return null;
+    private String extractMinimalTableHtml(String candidateHtml) {
+        List<JsonlConverter.TableSegment> innerTables = JsonlConverter.extractTableSegments(candidateHtml);
+        if (!innerTables.isEmpty()) {
+            return innerTables.get(0).getHtml();
         }
-        if (segments == null || segments.isEmpty()) {
-            return originalHtml;
-        }
-        if (targetIndex < 0 || targetIndex >= segments.size()) {
-            return originalHtml;
-        }
-        
-        JsonlConverter.TableSegment targetSegment = segments.get(targetIndex);
-
-        // body 태그 범위를 찾아 선택된 테이블만 남기고 나머지 본문을 제거한다.
-        String lowerHtml = originalHtml.toLowerCase();
-        int bodyOpenIdx = lowerHtml.indexOf("<body");
-        if (bodyOpenIdx < 0) {
-            return targetSegment.getHtml();
-        }
-        int bodyStart = originalHtml.indexOf('>', bodyOpenIdx);
-        if (bodyStart < 0) {
-            return targetSegment.getHtml();
-        }
-        int bodyCloseIdx = lowerHtml.indexOf("</body", bodyStart);
-        if (bodyCloseIdx < 0) {
-            return targetSegment.getHtml();
-        }
-
-        StringBuilder builder = new StringBuilder(originalHtml.length());
-        builder.append(originalHtml, 0, bodyStart + 1);
-        builder.append('\n').append(targetSegment.getHtml()).append('\n');
-        builder.append(originalHtml, bodyCloseIdx, originalHtml.length());
-        return builder.toString();
+        return candidateHtml;
     }
 }
