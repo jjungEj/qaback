@@ -31,6 +31,9 @@ public class JsonlConverter {
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "<table[^>]*>.*?</table>",
             Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    private static final Pattern H2_TABLE_PATTERN = Pattern.compile(
+            "(<h2[^>]*>.*?</h2>\\s*)(<table[^>]*>.*?</table>)",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -102,6 +105,30 @@ public class JsonlConverter {
             segments.add(new TableSegment(matcher.start(), matcher.end(), matcher.group()));
         }
         return segments;
+    }
+
+    /**
+     * HTML에서 <h2> 제목과 바로 뒤따르는 <table> 구간을 추출한다.
+     * 
+     * - <h2>와 그 뒤의 테이블을 한 묶음으로 간주한다.
+     * - <h2>가 없거나 매칭되지 않는 경우에는 기존 테이블 구간 추출 결과를 사용한다.
+     */
+    public static List<TableSegment> extractHeadingTableSegments(String htmlContent) {
+        if (htmlContent == null || htmlContent.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<TableSegment> segments = new ArrayList<>();
+        Matcher matcher = H2_TABLE_PATTERN.matcher(htmlContent);
+        while (matcher.find()) {
+            segments.add(new TableSegment(matcher.start(), matcher.end(), matcher.group()));
+        }
+
+        if (!segments.isEmpty()) {
+            return segments;
+        }
+
+        return extractTableSegments(htmlContent);
     }
 
     /**
