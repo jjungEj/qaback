@@ -59,13 +59,13 @@ public final class HtmlTableSanitizer {
 
         StringBuilder builder = new StringBuilder(attrPortion);
         if (!lower.contains("border=")) {
-            builder.append(" border=\"1\"");
+            builder.append(" border='1'");
         }
         if (!lower.contains("cellspacing=")) {
-            builder.append(" cellspacing=\"0\"");
+            builder.append(" cellspacing='0'");
         }
         if (!lower.contains("cellpadding=")) {
-            builder.append(" cellpadding=\"6\"");
+            builder.append(" cellpadding='6'");
         }
         return builder.toString();
     }
@@ -93,7 +93,7 @@ public final class HtmlTableSanitizer {
             return current;
         }
 
-        String styleAttr = " style=\"border-collapse:collapse\"";
+        String styleAttr = " style='border-collapse:collapse'";
         if (current.trim().isEmpty()) {
             return styleAttr;
         }
