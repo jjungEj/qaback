@@ -270,17 +270,27 @@ public class QaController {
             return originalHtml;
         }
         
-        StringBuilder builder = new StringBuilder(originalHtml.length());
-        int cursor = 0;
-        for (int i = 0; i < segments.size(); i++) {
-            JsonlConverter.TableSegment segment = segments.get(i);
-            builder.append(originalHtml, cursor, segment.getStart());
-            if (i == targetIndex) {
-                builder.append(segment.getHtml());
-            }
-            cursor = segment.getEnd();
+        JsonlConverter.TableSegment targetSegment = segments.get(targetIndex);
+
+        // body 태그 범위를 찾아 선택된 테이블만 남기고 나머지 본문을 제거한다.
+        String lowerHtml = originalHtml.toLowerCase();
+        int bodyOpenIdx = lowerHtml.indexOf("<body");
+        if (bodyOpenIdx < 0) {
+            return targetSegment.getHtml();
         }
-        builder.append(originalHtml.substring(cursor));
+        int bodyStart = originalHtml.indexOf('>', bodyOpenIdx);
+        if (bodyStart < 0) {
+            return targetSegment.getHtml();
+        }
+        int bodyCloseIdx = lowerHtml.indexOf("</body", bodyStart);
+        if (bodyCloseIdx < 0) {
+            return targetSegment.getHtml();
+        }
+
+        StringBuilder builder = new StringBuilder(originalHtml.length());
+        builder.append(originalHtml, 0, bodyStart + 1);
+        builder.append('\n').append(targetSegment.getHtml()).append('\n');
+        builder.append(originalHtml, bodyCloseIdx, originalHtml.length());
         return builder.toString();
     }
 }
