@@ -195,19 +195,17 @@ public class QaController {
         
         for (HtmlUpdateRequest.SheetHtmlUpdate sheet : request.getSheets()) {
             String htmlContent = sheet.getHtmlContent();
-            // HTML 내용에서 테이블 개수 확인
-            int tableCount = JsonlConverter.countTables(htmlContent);
+            List<JsonlConverter.TableSegment> tableSegments = JsonlConverter.extractTableSegments(htmlContent);
+            int tableCount = tableSegments.size();
             
             // 테이블이 2개 이상인 경우: 각 테이블을 별도의 HtmlSheetData로 분리
             if (tableCount >= 2) {
-                // HTML에서 모든 테이블 태그 추출
-                List<String> tables = JsonlConverter.extractTables(htmlContent);
                 // 프론트엔드에서 제공한 각 테이블별 이미지 리스트 (null일 수 있음)
                 List<String> imageList = sheet.getImageBase64List();
                 
                 // 각 테이블에 대해 반복 처리
-                for (int i = 0; i < tables.size(); i++) {
-                    String tableHtml = tables.get(i);
+                for (int i = 0; i < tableSegments.size(); i++) {
+                    String singleTableHtml = buildHtmlWithSingleTable(htmlContent, tableSegments, i);
                     
                     // 시트명에 번호 추가
                     // 예: 원본 시트명이 "클러스터"이고 테이블이 3개인 경우
@@ -225,10 +223,9 @@ public class QaController {
                         // 하위 호환성: 원본 이미지를 모든 테이블에 공유
                         tableImage = sheet.getImageBase64();
                     }
-                    
                     // 분리된 테이블을 별도의 HtmlSheetData로 생성
                     // 이 데이터는 JSONL 파일의 한 줄이 됨
-                    result.add(new HtmlSheetData(sheetName, tableHtml, tableImage));
+                    result.add(new HtmlSheetData(sheetName, singleTableHtml, tableImage));
                 }
             } else {
                 // 테이블이 1개인 경우: 기존 방식 유지
@@ -257,5 +254,33 @@ public class QaController {
             return trimmed.substring(0, idx) + ".jsonl";
         }
         return trimmed + ".jsonl"; //원본 파일명에서 .jsonl로 교체 
+    }
+
+    /**
+     * 다중 테이블 HTML에서 지정된 테이블만 남기고 전체 DOCTYPE/HEAD 구조를 유지한다.
+     */
+    private String buildHtmlWithSingleTable(String originalHtml, List<JsonlConverter.TableSegment> segments, int targetIndex) {
+        if (originalHtml == null) {
+            return null;
+        }
+        if (segments == null || segments.isEmpty()) {
+            return originalHtml;
+        }
+        if (targetIndex < 0 || targetIndex >= segments.size()) {
+            return originalHtml;
+        }
+        
+        StringBuilder builder = new StringBuilder(originalHtml.length());
+        int cursor = 0;
+        for (int i = 0; i < segments.size(); i++) {
+            JsonlConverter.TableSegment segment = segments.get(i);
+            builder.append(originalHtml, cursor, segment.getStart());
+            if (i == targetIndex) {
+                builder.append(segment.getHtml());
+            }
+            cursor = segment.getEnd();
+        }
+        builder.append(originalHtml.substring(cursor));
+        return builder.toString();
     }
 }

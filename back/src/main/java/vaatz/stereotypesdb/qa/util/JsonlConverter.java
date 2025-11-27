@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,10 @@ import vaatz.stereotypesdb.qa.model.HtmlSheetData;
 * 								- 각 시트마다 한 줄씩 JSONL 형식으로 출력
 */
 public class JsonlConverter {
+
+    private static final Pattern TABLE_PATTERN = Pattern.compile(
+            "<table[^>]*>.*?</table>",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -78,26 +83,25 @@ public class JsonlConverter {
      *         테이블이 없거나 HTML이 비어있으면 빈 리스트 반환
      */
     public static List<String> extractTables(String htmlContent) {
+        return extractTableSegments(htmlContent).stream()
+                .map(TableSegment::getHtml)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * HTML에서 테이블 구간(start, end, html)을 추출한다.
+     */
+    public static List<TableSegment> extractTableSegments(String htmlContent) {
         if (htmlContent == null || htmlContent.trim().isEmpty()) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
-        List<String> tables = new ArrayList<>();
-        // <table> 태그를 찾기 위한 정규식
-        // - <table[^>]*>: <table> 태그 시작 (속성 포함)
-        // - .*?: 태그 내용 (비탐욕적 매칭)
-        // - </table>: 태그 종료
-        // Pattern.DOTALL: .이 개행문자도 매칭하도록 설정
-        // Pattern.CASE_INSENSITIVE: 대소문자 구분 안 함
-        Pattern pattern = Pattern.compile("<table[^>]*>.*?</table>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(htmlContent);
-
-        // 모든 매칭되는 테이블을 리스트에 추가
+        List<TableSegment> segments = new ArrayList<>();
+        Matcher matcher = TABLE_PATTERN.matcher(htmlContent);
         while (matcher.find()) {
-            tables.add(matcher.group());
+            segments.add(new TableSegment(matcher.start(), matcher.end(), matcher.group()));
         }
-
-        return tables;
+        return segments;
     }
 
     /**
@@ -111,6 +115,33 @@ public class JsonlConverter {
      */
     public static int countTables(String htmlContent) {
         return extractTables(htmlContent).size();
+    }
+
+    /**
+     * HTML 내 테이블 영역을 나타내는 불변 객체.
+     */
+    public static final class TableSegment {
+        private final int start;
+        private final int end;
+        private final String html;
+
+        public TableSegment(int start, int end, String html) {
+            this.start = start;
+            this.end = end;
+            this.html = html;
+        }
+
+        public int getStart() {
+            return start;
+        }
+
+        public int getEnd() {
+            return end;
+        }
+
+        public String getHtml() {
+            return html;
+        }
     }
 }
 
