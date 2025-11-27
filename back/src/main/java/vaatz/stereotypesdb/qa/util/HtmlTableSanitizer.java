@@ -36,7 +36,8 @@ public final class HtmlTableSanitizer {
         if (trimmed.isEmpty()) {
             return "";
         }
-        String withAttributes = ensureTableAttributes(trimmed);
+        String unescaped = normalizeEscapedQuotes(trimmed);
+        String withAttributes = ensureTableAttributes(unescaped);
         return removeLineBreaks(withAttributes);
     }
 
