@@ -21,6 +21,7 @@ public final class HtmlTableSanitizer {
     private static final Pattern STYLE_DOUBLE_PATTERN = Pattern.compile("(?i)style\\s*=\\s*\"([^\"]*)\"");
     private static final Pattern STYLE_SINGLE_PATTERN = Pattern.compile("(?i)style\\s*=\\s*'([^']*)'");
     private static final Pattern ESCAPED_QUOTE_PATTERN = Pattern.compile("\\\\([\"'])");
+    private static final Pattern DOUBLE_QUOTED_ATTR_PATTERN = Pattern.compile("=\\s*\"([^\"]*)\"");
 
     private HtmlTableSanitizer() {
     }
@@ -37,7 +38,8 @@ public final class HtmlTableSanitizer {
             return "";
         }
         String unescaped = normalizeEscapedQuotes(trimmed);
-        String withAttributes = ensureTableAttributes(unescaped);
+        String unifiedQuotes = convertDoubleQuotedAttributes(unescaped);
+        String withAttributes = ensureTableAttributes(unifiedQuotes);
         return removeLineBreaks(withAttributes);
     }
 
@@ -113,6 +115,22 @@ public final class HtmlTableSanitizer {
             return attrs;
         }
         return ESCAPED_QUOTE_PATTERN.matcher(attrs).replaceAll("$1");
+    }
+
+    /**
+     * 속성에 사용된 이중따옴표를 단일따옴표로 통일한다.
+     */
+    private static String convertDoubleQuotedAttributes(String html) {
+        Matcher matcher = DOUBLE_QUOTED_ATTR_PATTERN.matcher(html);
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String value = matcher.group(1);
+            String sanitized = value.replace("'", "&#39;");
+            String replacement = "='" + sanitized + "'";
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(buffer);
+        return buffer.toString();
     }
 
     private static String appendStyleRules(String styleValue) {
