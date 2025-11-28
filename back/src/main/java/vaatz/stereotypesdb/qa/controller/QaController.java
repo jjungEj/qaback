@@ -30,6 +30,8 @@ import org.springframework.web.server.ResponseStatusException;
 import vaatz.stereotypesdb.qa.dto.FileMoveRequest;
 import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
 import vaatz.stereotypesdb.qa.dto.HtmlUpdateRequest;
+import vaatz.stereotypesdb.qa.dto.JsonMergeRequest;
+import vaatz.stereotypesdb.qa.dto.JsonMergeResult;
 import vaatz.stereotypesdb.qa.dto.JsonPredictConversionResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
@@ -38,6 +40,7 @@ import vaatz.stereotypesdb.qa.model.HtmlSheetData;
 import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
 import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
 import vaatz.stereotypesdb.qa.service.JsonPredictConversionService;
+import vaatz.stereotypesdb.qa.service.PredictionFileService;
 import vaatz.stereotypesdb.qa.util.HtmlTableSanitizer;
 import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
@@ -61,11 +64,14 @@ public class QaController {
 
     private final FileWorkspaceService fileWorkspaceService;
     private final JsonPredictConversionService jsonPredictConversionService;
+    private final PredictionFileService predictionFileService;
 
     public QaController(FileWorkspaceService fileWorkspaceService,
-                        JsonPredictConversionService jsonPredictConversionService) {
+                        JsonPredictConversionService jsonPredictConversionService,
+                        PredictionFileService predictionFileService) {
         this.fileWorkspaceService = fileWorkspaceService;
         this.jsonPredictConversionService = jsonPredictConversionService;
+        this.predictionFileService = predictionFileService;
     }
 
     /**
@@ -186,6 +192,34 @@ public class QaController {
             @RequestPart("file") MultipartFile file) {
         JsonPredictConversionResponse response = jsonPredictConversionService.convert(file);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * JSON 예측 파일을 개별 HTML로 분할한다.
+     */
+    @PostMapping(value = "/files/json/split", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<WorkspaceFileResponse>> splitJsonPredicts(
+            @RequestPart("file") MultipartFile file) {
+        List<WorkspaceFileResponse> responses = predictionFileService.splitJsonPredicts(file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+    }
+
+    /**
+     * 선택한 HTML을 JSON 예측 배열로 재조합한다.
+     */
+    @PostMapping("/files/json/merge")
+    public ResponseEntity<ByteArrayResource> mergeHtmlToJson(
+            @Valid @RequestBody JsonMergeRequest request) {
+        JsonMergeResult result = predictionFileService.mergeHtmlFilesToJson(request);
+        ByteArrayResource resource = new ByteArrayResource(result.getJsonBytes());
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(result.getFileName(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentLength(result.getJsonBytes().length)
+                .body(resource);
     }
 
     /**

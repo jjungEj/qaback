@@ -38,6 +38,30 @@ mvn spring-boot:run
 3. 문서 원본은 `LocalFile` 로 관리되고, 시스템 상태 요약은 `SystemStatus`로 스냅샷을 남깁니다.
 4. `SystemStatusService`는 최신 스냅샷과 당일 처리 건수를 합쳐 요약 정보를 제공합니다.
 
+### 3.3 JSON Prediction 분할/병합 워크플로우
+최근 추가된 `PredictionFileService`와 `QaController` 엔드포인트를 통해 JSON 예측 결과를 HTML로 쪼개고 다시 합칠 수 있습니다.
+
+1. **분할** – `POST /api/qa/files/json/split`
+   - `predict` 혹은 `predicts` 배열이 포함된 JSON을 업로드하면 항목마다 HTML 파일을 생성해 `before` 폴더에 저장합니다.
+   - 파일명 규칙: `001_제목.html`, `002_제목.html` 식으로 순번+제목을 조합하며, 중복 제목에는 `_2`, `_3` 접미사가 붙습니다.
+   - 응답은 `WorkspaceFileResponse` 배열이라 프론트에서 워크스페이스 목록과 바로 동기화할 수 있습니다.
+
+2. **병합** – `POST /api/qa/files/json/merge`
+   - 요청 본문
+     ```json
+     {
+       "fileNames": ["001_foo.html","010_bar.html"],
+       "outputFileName": "predict-20250128.json"
+     }
+     ```
+   - `fileNames` 순서대로 `predicts` 배열이 만들어지며, 생략 시 `outputFileName`은 `merged-predicts.json`으로 저장됩니다.
+   - 병합된 JSON은 곧바로 다운로드되고, `saveJsonToAfter`를 통해 동일 파일이 `after` 폴더에도 저장되어 `/api/qa/workspace` 응답에 즉시 반영됩니다.
+
+3. **HTML 템플릿 규칙**
+   - 분할 시 생성되는 HTML에는 `<body data-predict-title="...">`와 `<div data-predict-body="true">...</div>`가 포함되어, 병합 시 제목/본문을 원본 그대로 복원합니다.
+   - 표나 이미지 편집은 자유롭게 가능하지만 이 data-attribute 래퍼는 삭제하지 않는 것이 좋습니다.
+   - 현재 병합 시에는 각 항목의 `title`과 `predict` 필드만 유지하며, 추가 메타데이터가 필요하면 사전에 협의가 필요합니다.
+
 ## 4. API와 예상 화면 연계
 | 엔드포인트 | HTTP | 설명 | 예상 화면/기능 |
 | --- | --- | --- | --- |

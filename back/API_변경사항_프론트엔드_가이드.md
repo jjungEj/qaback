@@ -4,12 +4,107 @@
 
 ## 🎯 주요 변경사항
 
-### 1. before 폴더 검색 기능 추가
-### 2. 여러 파일 동시 업로드 기능 추가
+### 1. JSON 예측 파일 분할·병합 API 추가
+### 2. before 폴더 검색 기능 추가
+### 3. 여러 파일 동시 업로드 기능 추가
 
 ---
 
-## 1. 워크스페이스 조회 API - 검색 기능 추가
+## 1. JSON 예측 파일 분할·병합 API
+
+### 1.1 전체 흐름
+1. `POST /api/qa/files/json/split`에 JSON 예측 파일(`predict` 또는 `predicts` 배열 포함)을 업로드합니다.
+2. 백엔드는 배열 항목마다 HTML을 만들어 `before` 폴더에 저장하고, 저장된 파일 메타데이터(`WorkspaceFileResponse`) 목록을 반환합니다.
+3. 프론트엔드에서 필요한 HTML만 선택해 순서를 정한 뒤, `POST /api/qa/files/json/merge`에 파일명을 전달하면 지정한 순서 그대로 `predicts` 배열을 재구성합니다.
+4. 병합된 JSON은 다운로드 응답으로 전달되는 동시에 `after` 폴더에 일반 `.json`으로 저장되므로, 워크스페이스 목록에서 즉시 확인할 수 있습니다.
+
+> ⚠️ 현재 병합 시에는 각 항목의 `title`과 `predict` 문자열만 유지하며, 추가 필드를 저장해야 한다면 백엔드에 알려주세요.
+
+### 1.2 JSON 분할 API
+| 구분 | 값 |
+| --- | --- |
+| Endpoint | `POST /api/qa/files/json/split` |
+| Content-Type | `multipart/form-data` |
+| Form field | `file` (단일 .json) |
+| Response | `WorkspaceFileResponse[]` (생성된 HTML 메타데이터) |
+
+- JSON 전체에서 이름이 `predicts` 또는 `predict`인 배열을 찾습니다. 루트 배열이 `predict`/`predicts` 형태일 경우도 자동 감지합니다.
+- 각 항목은 `title` · `heading` · `name` · `id` 중 첫 번째 값과 `predict/html/body/content` 중 첫 번째 텍스트 필드를 읽어 HTML을 생성합니다.
+- 파일명은 `001_제목.html` 형식으로 부여되며, 동일 제목이 있으면 `_2`, `_3` 순번이 뒤에 붙습니다.
+- 반환된 리스트를 그대로 워크스페이스 목록과 동기화하면 추가 API 호출 없이 업로드 결과를 표시할 수 있습니다.
+
+#### 템플릿 구조
+분할 시 생성되는 HTML은 제목/본문을 정확히 복원할 수 있도록 data-attribute를 포함합니다.
+
+```html
+<!DOCTYPE html>
+<html lang='ko'>
+  <head>
+    <meta charset='UTF-8' />
+    <title>클러스터A</title>
+  </head>
+  <body data-predict-title='클러스터A'>
+    <h1>클러스터A</h1>
+    <div data-predict-body='true'>
+      <!-- predict HTML 본문 -->
+    </div>
+  </body>
+</html>
+```
+
+- `data-predict-title` 속성과 `<div data-predict-body="true">` 래퍼는 병합 시 제목/본문을 정확히 찾는 기준입니다. 테이블이나 이미지 편집은 자유롭게 하되, 해당 태그는 삭제하지 않는 것이 좋습니다.
+
+### 1.3 HTML 병합 API
+| 구분 | 값 |
+| --- | --- |
+| Endpoint | `POST /api/qa/files/json/merge` |
+| Content-Type | `application/json` |
+| Request | `{"fileNames":["001_foo.html","010_bar.html"],"outputFileName":"predict-review.json"}` |
+| Response | JSON 파일(ByteArrayResource) + `Content-Disposition` Attachment |
+
+- `fileNames` 배열의 순서대로 `predicts` 배열이 구성되므로, 프론트엔드에서 원하는 작업 순서로 정렬한 뒤 전달하세요.
+- `outputFileName`은 확장자를 생략해도 `.json`이 자동으로 붙으며, 생략 시 `merged-predicts.json`으로 저장됩니다.
+- 병합 성공 시:
+  - 응답 본문: Pretty JSON 바이트 (즉시 다운로드)
+  - after 폴더: 동일 내용을 가진 `.json`이 저장되고 워크스페이스 목록에서 확인 가능 (`saveJsonToAfter`)
+  - `JsonMergeResult` 내부에는 저장된 파일 메타데이터가 포함되므로, 필요하다면 추후 확장에 이용할 수 있습니다.
+
+#### Request 예시
+```json
+{
+  "fileNames": [
+    "001_클러스터A.html",
+    "002_클러스터B.html"
+  ],
+  "outputFileName": "predict-20250128.json"
+}
+```
+
+#### Response 예시 (본문)
+```json
+{
+  "predicts": [
+    {
+      "title": "클러스터A",
+      "predict": "<table ...>...</table>"
+    },
+    {
+      "title": "클러스터B",
+      "predict": "<table ...>...</table>"
+    }
+  ]
+}
+```
+
+### 1.4 검증 및 주의사항
+- JSON 분할 시 predict 배열을 찾지 못하면 400 에러를 반환합니다. 반드시 `predict`/`predicts` 키로 배열을 전달하세요.
+- 병합 시 HTML 본문을 찾지 못하면 400 에러가 발생합니다. 분할된 템플릿의 `data-predict-body` 래퍼를 삭제하지 마세요.
+- 파일 제목이나 본문에 `<` `>`와 같은 특수 문자가 포함되더라도 HTML 속성과 텍스트는 안전하게 이스케이프됩니다.
+- after 폴더에 저장된 JSON은 `/api/qa/workspace` 응답의 after 섹션에서 바로 확인 가능하므로, 추가 파일 조회 API가 필요 없습니다.
+
+---
+
+## 2. 워크스페이스 조회 API - 검색 기능 추가
 
 ### 엔드포인트
 ```
@@ -114,7 +209,7 @@ const fetchWorkspace = async () => {
 
 ---
 
-## 2. HTML 파일 업로드 API - 다중 파일 업로드 지원
+## 3. HTML 파일 업로드 API - 다중 파일 업로드 지원
 
 ### 엔드포인트
 ```
