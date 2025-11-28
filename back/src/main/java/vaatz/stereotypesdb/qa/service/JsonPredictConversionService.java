@@ -57,7 +57,7 @@ public class JsonPredictConversionService {
         List<HtmlSheetData> sheetDataList = new ArrayList<>();
         for (RecordSummary summary : summaries) {
             sheetDataList.add(new HtmlSheetData(
-                    resolveSheetName(summary.getIdentifier(), sheetDataList.size()),
+                    resolveSheetName(summary.getIdentifier(), summary.getImagePath(), sheetDataList.size()),
                     summary.getPredictHtml(),
                     summary.getImagePath()));
         }
@@ -87,7 +87,7 @@ public class JsonPredictConversionService {
                 String imagePath = resolveImagePath(objectNode);
                 String sanitizedHtml = sanitizePredict(predictNode.asText(), imagePath);
                 objectNode.put("predict", sanitizedHtml);
-                String identifier = resolveIdentifier(objectNode, counter);
+                String identifier = resolveIdentifier(objectNode, imagePath, counter);
                 summaries.add(new RecordSummary(identifier, imagePath, sanitizedHtml));
             }
             objectNode.fields().forEachRemaining(entry -> processNode(entry.getValue(), summaries, counter));
@@ -169,7 +169,11 @@ public class JsonPredictConversionService {
         return "";
     }
 
-    private String resolveIdentifier(ObjectNode objectNode, AtomicInteger counter) {
+    private String resolveIdentifier(ObjectNode objectNode, String imagePath, AtomicInteger counter) {
+        String titleFromImage = deriveTitleFromImagePath(imagePath);
+        if (StringUtils.hasText(titleFromImage)) {
+            return titleFromImage;
+        }
         JsonNode idNode = objectNode.get("id");
         if (idNode != null && idNode.isValueNode() && StringUtils.hasText(idNode.asText())) {
             return idNode.asText();
@@ -177,9 +181,13 @@ public class JsonPredictConversionService {
         return "row-" + counter.getAndIncrement();
     }
 
-    private String resolveSheetName(String identifier, int index) {
+    private String resolveSheetName(String identifier, String imagePath, int index) {
         if (StringUtils.hasText(identifier)) {
             return identifier;
+        }
+        String titleFromImage = deriveTitleFromImagePath(imagePath);
+        if (StringUtils.hasText(titleFromImage)) {
+            return titleFromImage;
         }
         return "sheet-" + (index + 1);
     }
@@ -197,6 +205,32 @@ public class JsonPredictConversionService {
     private String escapeAttribute(String text) {
         String trimmed = text == null ? "" : text.trim();
         return escapeHtml(trimmed);
+    }
+
+    private String deriveTitleFromImagePath(String imagePath) {
+        if (!StringUtils.hasText(imagePath)) {
+            return "";
+        }
+        String normalized = imagePath.trim();
+        int queryIdx = normalized.indexOf('?');
+        if (queryIdx >= 0) {
+            normalized = normalized.substring(0, queryIdx);
+        }
+        normalized = normalized.replace('\\', '/');
+        int slashIdx = normalized.lastIndexOf('/');
+        String fileName = slashIdx >= 0 ? normalized.substring(slashIdx + 1) : normalized;
+        if (!StringUtils.hasText(fileName)) {
+            return "";
+        }
+        String lower = fileName.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".png")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+        int dotIdx = fileName.lastIndexOf('.');
+        if (dotIdx > 0) {
+            return fileName.substring(0, dotIdx);
+        }
+        return fileName;
     }
 
     private String toJsonlFileName(String jsonFileName) {
