@@ -156,6 +156,27 @@ public class FileWorkspaceService {
     }
 
     /**
+     * after 폴더에 JSON 파일을 저장하고 메타 정보를 반환한다.
+     */
+    public WorkspaceFileResponse saveJsonToAfter(String fileName, byte[] payload) {
+        if (payload == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "저장할 JSON 내용이 필요합니다.");
+        }
+        String sanitized = sanitizeFileName(fileName);
+        if (!sanitized.toLowerCase(Locale.ROOT).endsWith(".json")) {
+            sanitized = sanitized + ".json";
+        }
+        Path target = folderPaths.get(WorkspaceFolderType.AFTER).resolve(sanitized);
+        try {
+            Files.createDirectories(target.getParent());
+            Files.write(target, payload, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            return toFileResponse(WorkspaceFolderType.AFTER, target);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "after 폴더에 JSON 저장에 실패했습니다.", e);
+        }
+    }
+
+    /**
      * after, before, dev 각각 buildFolderResponse 호출
      */
     public List<WorkspaceFolderResponse> getWorkspaceOverview(int afterPage, int beforePage, int devPage, int size, String beforeKeyword) {
