@@ -30,12 +30,14 @@ import org.springframework.web.server.ResponseStatusException;
 import vaatz.stereotypesdb.qa.dto.FileMoveRequest;
 import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
 import vaatz.stereotypesdb.qa.dto.HtmlUpdateRequest;
+import vaatz.stereotypesdb.qa.dto.JsonPredictConversionResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileContentResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
 import vaatz.stereotypesdb.qa.model.HtmlSheetData;
 import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
 import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
+import vaatz.stereotypesdb.qa.service.JsonPredictConversionService;
 import vaatz.stereotypesdb.qa.util.HtmlTableSanitizer;
 import vaatz.stereotypesdb.qa.util.JsonlConverter;
 
@@ -58,9 +60,12 @@ import vaatz.stereotypesdb.qa.util.JsonlConverter;
 public class QaController {
 
     private final FileWorkspaceService fileWorkspaceService;
+    private final JsonPredictConversionService jsonPredictConversionService;
 
-    public QaController(FileWorkspaceService fileWorkspaceService) {
+    public QaController(FileWorkspaceService fileWorkspaceService,
+                        JsonPredictConversionService jsonPredictConversionService) {
         this.fileWorkspaceService = fileWorkspaceService;
+        this.jsonPredictConversionService = jsonPredictConversionService;
     }
 
     /**
@@ -171,6 +176,16 @@ public class QaController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,disposition.toString())
                 .contentLength(jsonlBytes.length)
                 .body(resource);
+    }
+
+    /**
+     * JSON 파일을 업로드하여 predict 값을 HTML로 변환하고 JSON/JSONL을 다운로드한다.
+     */
+    @PostMapping(value = "/files/json/predict", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<JsonPredictConversionResponse> convertPredictJson(
+            @RequestPart("file") MultipartFile file) {
+        JsonPredictConversionResponse response = jsonPredictConversionService.convert(file);
+        return ResponseEntity.ok(response);
     }
 
     /**
