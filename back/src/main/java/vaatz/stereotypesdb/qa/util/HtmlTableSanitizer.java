@@ -20,6 +20,8 @@ public final class HtmlTableSanitizer {
     private static final Pattern TABLE_PATTERN = Pattern.compile("(?i)<table([^>]*)>");
     private static final Pattern STYLE_DOUBLE_PATTERN = Pattern.compile("(?i)style\\s*=\\s*\"([^\"]*)\"");
     private static final Pattern STYLE_SINGLE_PATTERN = Pattern.compile("(?i)style\\s*=\\s*'([^']*)'");
+    private static final Pattern ATTRIBUTE_DOUBLE_QUOTE_PATTERN =
+            Pattern.compile("(\\s+[a-zA-Z_:][\\w:.-]*\\s*=\\s*)\"([^\"]*)\"");
 
     private HtmlTableSanitizer() {
     }
@@ -36,7 +38,8 @@ public final class HtmlTableSanitizer {
             return "";
         }
         String withAttributes = ensureTableAttributes(trimmed);
-        return removeLineBreaks(withAttributes);
+        String withoutBreaks = removeLineBreaks(withAttributes);
+        return preferSingleQuotes(withoutBreaks);
     }
 
     private static String ensureTableAttributes(String html) {
@@ -122,5 +125,29 @@ public final class HtmlTableSanitizer {
 
     private static String removeLineBreaks(String html) {
         return html.replace("\r", "").replace("\n", "");
+    }
+
+    /**
+     * HTML 태그 내부 속성에서 큰따옴표를 작은따옴표로 치환한다.
+     *
+     * JSON 직렬화 시 `\"`가 생기는 문제를 완화하기 위해,
+     * 속성 값 안에 작은따옴표가 없는 경우에만 변환한다.
+     */
+    private static String preferSingleQuotes(String html) {
+        Matcher matcher = ATTRIBUTE_DOUBLE_QUOTE_PATTERN.matcher(html);
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String prefix = matcher.group(1);
+            String value = matcher.group(2);
+            if (value.indexOf('\'') >= 0) {
+                matcher.appendReplacement(buffer,
+                        Matcher.quoteReplacement(prefix + "\"" + value + "\""));
+                continue;
+            }
+            matcher.appendReplacement(buffer,
+                    Matcher.quoteReplacement(prefix + "'" + value + "'"));
+        }
+        matcher.appendTail(buffer);
+        return buffer.toString();
     }
 }
