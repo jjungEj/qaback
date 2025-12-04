@@ -151,6 +151,15 @@ public class FileWorkspaceService {
     }
 
     /**
+     * 특정 폴더의 페이징 목록을 반환한다.
+     */
+    public WorkspaceFolderResponse getFolderPage(WorkspaceFolderType folderType, int page, int size, String keyword) {
+        int validatedSize = normalizeSize(size);
+        int safePage = normalizePage(page);
+        return buildFolderResponse(folderType, safePage, validatedSize, keyword);
+    }
+
+    /**
      * 폴더, 파일 존재 여부 확인 후 내용을 반환
      */
     public WorkspaceFileContentResponse readFile(WorkspaceFolderType folderType, String fileName) {
