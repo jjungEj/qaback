@@ -13,7 +13,7 @@ import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
 import vaatz.stereotypesdb.qa.dto.ResultDetailResponse;
 import vaatz.stereotypesdb.qa.dto.ResultPageResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
-import vaatz.stereotypesdb.qa.model.ResultItem;
+import vaatz.stereotypesdb.qa.model.ResultEntity;
 import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
 import vaatz.stereotypesdb.qa.service.ResultService;
 
@@ -63,9 +63,9 @@ public class ResultController {
      */
     @PostMapping("/{resultId}/qa")
     public ResponseEntity<WorkspaceFileResponse> sendResultToQa(@PathVariable Long resultId) {
-        ResultItem item = resultService.findResult(resultId);
+        ResultEntity item = resultService.findResult(resultId);
         HtmlFileSaveRequest request = new HtmlFileSaveRequest();
-        request.setHtmlContent(resultService.buildQaPlaceholderHtml(item));
+        request.setHtmlContent(resultService.resolveQaHtmlContent(item));
         WorkspaceFileResponse saved = fileWorkspaceService.saveHtmlContent(item.getFileName(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
