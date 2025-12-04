@@ -20,7 +20,7 @@ import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
 /**
 * @ClassName  : ResultService.java
 * @Description: 결과 조회(목록/상세) 및 QA 전달 준비 로직 - 파일 기반
-* @Author     : GPT-5.1 Codex
+* @Author     : 정은주
 * @Date       : 2025.12.04
 */
 @Service

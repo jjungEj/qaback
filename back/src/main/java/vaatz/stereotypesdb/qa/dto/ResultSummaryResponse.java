@@ -7,12 +7,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
 * @ClassName  : ResultSummaryResponse.java
 * @Description: 결과 목록 카드 하나에 필요한 핵심 정보 DTO
-* @Author     : GPT-5.1 Codex
+* @Author     : 정은주
 * @Date       : 2025.12.04
 * ===========================================================
 * DATE              AUTHOR             NOTE
 * -----------------------------------------------------------
-* 2025.12.04        GPT-5.1 Codex      - 파일 기반 응답 구조 정의
+* 2025.12.04        정은주      - 파일 기반 응답 구조 정의
 */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResultSummaryResponse {

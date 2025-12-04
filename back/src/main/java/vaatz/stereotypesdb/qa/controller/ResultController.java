@@ -25,7 +25,7 @@ import vaatz.stereotypesdb.qa.service.ResultService;
 * DATE              AUTHOR             NOTE
 * -----------------------------------------------------------
 * 2025.11.17        정은주       	- 결과 조회 엔드포인트 정의 (향후 구현 예정)
-* 2025.12.04        GPT-5.1 Codex - 목록/상세/QA 전달 구현
+* 2025.12.04                        - 목록/상세/QA 전달 구현
 */
 @RestController
 @RequestMapping("/api/results")

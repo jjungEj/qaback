@@ -8,12 +8,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
 * @ClassName  : ResultPageResponse.java
 * @Description: 결과 목록 페이징 응답 DTO
-* @Author     : GPT-5.1 Codex
+* @Author     : 정은주
 * @Date       : 2025.12.04
 * ===========================================================
 * DATE              AUTHOR             NOTE
 * -----------------------------------------------------------
-* 2025.12.04        GPT-5.1 Codex      - 페이지네이션 정보 및 이동 버튼 지원
+* 2025.12.04        정은주       - 페이지네이션 정보 및 이동 버튼 지원
 */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResultPageResponse {
