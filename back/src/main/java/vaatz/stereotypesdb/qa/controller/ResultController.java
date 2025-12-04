@@ -13,7 +13,6 @@ import vaatz.stereotypesdb.qa.dto.HtmlFileSaveRequest;
 import vaatz.stereotypesdb.qa.dto.ResultDetailResponse;
 import vaatz.stereotypesdb.qa.dto.ResultPageResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
-import vaatz.stereotypesdb.qa.model.ResultEntity;
 import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
 import vaatz.stereotypesdb.qa.service.ResultService;
 
@@ -53,20 +52,19 @@ public class ResultController {
     /**
      * 결과 상세 조회 (문단 3개는 현재 빈칸)
      */
-    @GetMapping("/{resultId}")
-    public ResponseEntity<ResultDetailResponse> getResultDetail(@PathVariable Long resultId) {
-        return ResponseEntity.ok(resultService.getResultDetail(resultId));
+    @GetMapping("/{fileName}")
+    public ResponseEntity<ResultDetailResponse> getResultDetail(@PathVariable String fileName) {
+        return ResponseEntity.ok(resultService.getResultDetail(fileName));
     }
 
     /**
      * 결과 -> QA before 폴더로 전달
      */
-    @PostMapping("/{resultId}/qa")
-    public ResponseEntity<WorkspaceFileResponse> sendResultToQa(@PathVariable Long resultId) {
-        ResultEntity item = resultService.findResult(resultId);
+    @PostMapping("/{fileName}/qa")
+    public ResponseEntity<WorkspaceFileResponse> sendResultToQa(@PathVariable String fileName) {
         HtmlFileSaveRequest request = new HtmlFileSaveRequest();
-        request.setHtmlContent(resultService.resolveQaHtmlContent(item));
-        WorkspaceFileResponse saved = fileWorkspaceService.saveHtmlContent(item.getFileName(), request);
+        request.setHtmlContent(resultService.resolveQaHtmlContent(fileName));
+        WorkspaceFileResponse saved = fileWorkspaceService.saveHtmlContent(fileName, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 }

@@ -12,36 +12,19 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 * ===========================================================
 * DATE              AUTHOR             NOTE
 * -----------------------------------------------------------
-* 2025.12.04        GPT-5.1 Codex      - 문단 3개에 대응하는 필드 정의
+* 2025.12.04        GPT-5.1 Codex      - 파일 기반 상세 응답 구조 정의
 */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResultDetailResponse {
-    private Long id;
-    private String title;
     private String fileName;
-    private String status;
-    private LocalDateTime createdAt;
+    private String folder;
+    private long fileSize;
+    private LocalDateTime lastModifiedAt;
 
     // 문단 3개 - 현재는 DB 미구현이라 빈칸 유지
     private String documentImageBase64;
     private String htmlTableContent;
     private String extractionSummary;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
 
     public String getFileName() {
         return fileName;
@@ -51,20 +34,28 @@ public class ResultDetailResponse {
         this.fileName = fileName;
     }
 
-    public String getStatus() {
-        return status;
+    public String getFolder() {
+        return folder;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setFolder(String folder) {
+        this.folder = folder;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public long getFileSize() {
+        return fileSize;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setFileSize(long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public LocalDateTime getLastModifiedAt() {
+        return lastModifiedAt;
+    }
+
+    public void setLastModifiedAt(LocalDateTime lastModifiedAt) {
+        this.lastModifiedAt = lastModifiedAt;
     }
 
     public String getDocumentImageBase64() {

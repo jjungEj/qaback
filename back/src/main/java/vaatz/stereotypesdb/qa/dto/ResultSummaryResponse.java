@@ -12,42 +12,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 * ===========================================================
 * DATE              AUTHOR             NOTE
 * -----------------------------------------------------------
-* 2025.12.04        GPT-5.1 Codex      - mock 데이터 기반 목록 응답 생성
+* 2025.12.04        GPT-5.1 Codex      - 파일 기반 응답 구조 정의
 */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResultSummaryResponse {
-    private Long id;
-    private String title;
     private String fileName;
-    private String status;
-    private LocalDateTime createdAt;
-
-    public ResultSummaryResponse() {
-    }
-
-    public ResultSummaryResponse(Long id, String title, String fileName, String status, LocalDateTime createdAt) {
-        this.id = id;
-        this.title = title;
-        this.fileName = fileName;
-        this.status = status;
-        this.createdAt = createdAt;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    private String folder;
+    private String extension;
+    private long fileSize;
+    private LocalDateTime lastModifiedAt;
 
     public String getFileName() {
         return fileName;
@@ -57,19 +30,35 @@ public class ResultSummaryResponse {
         this.fileName = fileName;
     }
 
-    public String getStatus() {
-        return status;
+    public String getFolder() {
+        return folder;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setFolder(String folder) {
+        this.folder = folder;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public String getExtension() {
+        return extension;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setExtension(String extension) {
+        this.extension = extension;
+    }
+
+    public long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public LocalDateTime getLastModifiedAt() {
+        return lastModifiedAt;
+    }
+
+    public void setLastModifiedAt(LocalDateTime lastModifiedAt) {
+        this.lastModifiedAt = lastModifiedAt;
     }
 }
