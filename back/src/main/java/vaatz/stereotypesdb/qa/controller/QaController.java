@@ -35,6 +35,7 @@ import vaatz.stereotypesdb.qa.dto.WorkspaceFileResponse;
 import vaatz.stereotypesdb.qa.dto.WorkspaceFolderResponse;
 import vaatz.stereotypesdb.qa.model.HtmlSheetData;
 import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
+import vaatz.stereotypesdb.qa.repository.ResultRepository;
 import vaatz.stereotypesdb.qa.service.FileWorkspaceService;
 import vaatz.stereotypesdb.qa.util.HtmlTableSanitizer;
 import vaatz.stereotypesdb.qa.util.JsonlConverter;
@@ -58,9 +59,11 @@ import vaatz.stereotypesdb.qa.util.JsonlConverter;
 public class QaController {
 
     private final FileWorkspaceService fileWorkspaceService;
+    private final ResultRepository resultRepository;
 
-    public QaController(FileWorkspaceService fileWorkspaceService) {
+    public QaController(FileWorkspaceService fileWorkspaceService, ResultRepository resultRepository) {
         this.fileWorkspaceService = fileWorkspaceService;
+        this.resultRepository = resultRepository;
     }
 
     /**
@@ -99,12 +102,21 @@ public class QaController {
 
     /**
      * before 폴더의 HTML을 덮어쓴다.
+     * HTML 파일 저장 후, 동일한 fileName이 결과 목록(Result 테이블)에 있으면 
+     * 해당 레코드의 folder 필드를 'after'로 업데이트한다.
      */
     @PutMapping("/files/before/{fileName}")
     public ResponseEntity<WorkspaceFileResponse> saveHtml(
             @PathVariable String fileName,
             @Valid @RequestBody HtmlFileSaveRequest request) {
+        // 1. HTML 파일을 before 폴더에 저장 (기존 동작)
         WorkspaceFileResponse response = fileWorkspaceService.saveHtmlContent(fileName, request);
+        
+        // 2. 동일한 fileName이 결과 목록(Result 테이블)에 있으면 folder 필드를 'after'로 업데이트
+        if (resultRepository.existsByFileName(fileName)) {
+            resultRepository.updateFolderByFileName(fileName, "after");
+        }
+        
         return ResponseEntity.ok(response);
     }
 
