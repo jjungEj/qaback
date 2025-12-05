@@ -309,17 +309,63 @@ public class FileWorkspaceService {
 
     private WorkspaceFileResponse toFileResponse(WorkspaceFolderType folderType, Path path) {
         try {
+            String fileName = path.getFileName().toString();
             WorkspaceFileResponse response = new WorkspaceFileResponse();
             response.setFolder(folderType.getKey());
-            response.setFileName(path.getFileName().toString());
+            response.setFileName(fileName);
             response.setFileSize(Files.size(path));
             response.setLastModifiedAt(toLocalDateTime(Files.getLastModifiedTime(path)));
-            response.setExtension(extractExtension(path.getFileName().toString()));
+            response.setExtension(extractExtension(fileName));
             response.setAbsolutePath(path.toString());
+            
+            // dev 폴더에 파일이 있으면 완료 상태로 설정
+            // 파일명의 기본 이름(확장자 제외)으로 비교 (HTML -> JSONL 변환 고려)
+            boolean isCompleted = checkFileExistsInDev(fileName);
+            response.setCompleted(isCompleted);
+            
             return response;
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 정보를 읽을 수 없습니다.", e);
         }
+    }
+
+    /**
+     * dev 폴더에 해당 파일명(또는 기본 이름이 같은 파일)이 있는지 확인
+     * HTML 파일이 JSONL로 변환되어 dev에 있을 수 있으므로 기본 이름으로 비교
+     */
+    private boolean checkFileExistsInDev(String fileName) {
+        try {
+            Path devFolder = folderPaths.get(WorkspaceFolderType.DEV);
+            if (devFolder == null || !Files.exists(devFolder)) {
+                return false;
+            }
+            
+            // 1. 정확한 파일명으로 확인
+            Path exactFile = devFolder.resolve(fileName);
+            if (Files.exists(exactFile)) {
+                return true;
+            }
+            
+            // 2. 기본 이름(확장자 제외)으로 확인 (HTML -> JSONL 변환 고려)
+            String baseName = getBaseFileName(fileName);
+            try (Stream<Path> stream = Files.list(devFolder)) {
+                return stream
+                        .filter(Files::isRegularFile)
+                        .anyMatch(p -> getBaseFileName(p.getFileName().toString()).equals(baseName));
+            }
+        } catch (IOException e) {
+            // dev 폴더 접근 실패 시 완료 상태가 아님
+            return false;
+        }
+    }
+
+    /**
+     * 파일명에서 확장자를 제외한 기본 이름 반환
+     * 예: "test.html" -> "test", "file.jsonl" -> "file"
+     */
+    private String getBaseFileName(String fileName) {
+        int lastDot = fileName.lastIndexOf('.');
+        return lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
     }
 
     private Path resolve(WorkspaceFolderType folderType, String fileName) {

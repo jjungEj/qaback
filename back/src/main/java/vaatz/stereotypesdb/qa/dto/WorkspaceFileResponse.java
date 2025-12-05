@@ -19,6 +19,7 @@ public class WorkspaceFileResponse {
     private LocalDateTime lastModifiedAt;
     private String extension;
     private String absolutePath;
+    private boolean isCompleted; // dev 폴더에 파일이 있으면 완료 상태
 
     public String getFolder() {
         return folder;
@@ -66,6 +67,14 @@ public class WorkspaceFileResponse {
 
     public void setAbsolutePath(String absolutePath) {
         this.absolutePath = absolutePath;
+    }
+
+    public boolean isCompleted() {
+        return isCompleted;
+    }
+
+    public void setCompleted(boolean completed) {
+        isCompleted = completed;
     }
 }
 
