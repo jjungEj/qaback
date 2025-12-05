@@ -318,15 +318,38 @@ public class FileWorkspaceService {
             response.setExtension(extractExtension(fileName));
             response.setAbsolutePath(path.toString());
             
-            // dev 폴더에 파일이 있으면 완료 상태로 설정
-            // 파일명의 기본 이름(확장자 제외)으로 비교 (HTML -> JSONL 변환 고려)
-            boolean isCompleted = checkFileExistsInDev(fileName);
+            // 폴더별 완료 상태 결정
+            // - dev 폴더: 항상 완료 (업로드 완료)
+            // - before 폴더: dev에 같은 파일이 있으면 완료, 없으면 진행중 (수정 진행 중)
+            // - after 폴더: dev에 같은 파일이 있으면 완료, 없으면 대기중 (업로드 대기 중)
+            boolean isCompleted = determineCompletionStatus(folderType, fileName);
             response.setCompleted(isCompleted);
             
             return response;
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 정보를 읽을 수 없습니다.", e);
         }
+    }
+
+    /**
+     * 폴더 타입과 파일명을 기준으로 완료 상태를 결정한다.
+     * 
+     * 결정 로직:
+     * - dev 폴더의 파일: 항상 완료 (업로드 완료)
+     * - before 폴더의 파일: dev 폴더에 동일한 기본 이름의 파일이 있으면 완료, 없으면 진행중 (수정 진행 중)
+     * - after 폴더의 파일: dev 폴더에 동일한 기본 이름의 파일이 있으면 완료, 없으면 대기중 (업로드 대기 중)
+     * 
+     * 주의: before 폴더에 파일이 남아 있어도 dev에 같은 파일이 있으면 완료로 표시됨
+     */
+    private boolean determineCompletionStatus(WorkspaceFolderType folderType, String fileName) {
+        // dev 폴더의 파일은 항상 완료 상태
+        if (folderType == WorkspaceFolderType.DEV) {
+            return true;
+        }
+        
+        // before/after 폴더의 파일은 dev 폴더에 파일이 있는지 확인
+        // dev에 있으면 완료, 없으면 진행중/대기중
+        return checkFileExistsInDev(fileName);
     }
 
     /**
