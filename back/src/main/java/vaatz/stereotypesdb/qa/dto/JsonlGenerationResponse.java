@@ -4,8 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * JSONL 변환 API 응답 DTO.
- */
+* @ClassName	: JsonlGenerationResponse.java
+* @Description	: JSONL 변환 API 응답 DTO
+* @Author		: 정은주
+* @Date			: 2025.11.25
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.11.25        정은주       	- JSONL 변환 API 응답 DTO
+*/
 public class JsonlGenerationResponse {
 
     private List<FileEntry> files = new ArrayList<>();

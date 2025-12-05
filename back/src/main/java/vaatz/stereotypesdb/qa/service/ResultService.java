@@ -22,6 +22,10 @@ import vaatz.stereotypesdb.qa.model.WorkspaceFolderType;
 * @Description: 결과 조회(목록/상세) 및 QA 전달 준비 로직 - 파일 기반
 * @Author     : 정은주
 * @Date       : 2025.12.04
+* ===========================================================
+* DATE              AUTHOR             NOTE
+* -----------------------------------------------------------
+* 2025.12.04        정은주       	- 결과 조회(목록/상세) 및 QA 전달 준비 로직 - 파일 기반
 */
 @Service
 public class ResultService {
@@ -81,6 +85,7 @@ public class ResultService {
         summary.setExtension(file.getExtension());
         summary.setFileSize(file.getFileSize());
         summary.setLastModifiedAt(file.getLastModifiedAt());
+        summary.setCompleted(file.isCompleted()); // 완료 상태 복사
         return summary;
     }
 

@@ -21,6 +21,7 @@ public class ResultSummaryResponse {
     private String extension;
     private long fileSize;
     private LocalDateTime lastModifiedAt;
+    private boolean isCompleted; // dev 폴더에 파일이 있으면 완료 상태
 
     public String getFileName() {
         return fileName;
@@ -60,5 +61,13 @@ public class ResultSummaryResponse {
 
     public void setLastModifiedAt(LocalDateTime lastModifiedAt) {
         this.lastModifiedAt = lastModifiedAt;
+    }
+
+    public boolean isCompleted() {
+        return isCompleted;
+    }
+
+    public void setCompleted(boolean completed) {
+        isCompleted = completed;
     }
 }
