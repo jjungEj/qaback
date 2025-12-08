@@ -2,6 +2,8 @@ package vaatz.stereotypesdb.qa.dto;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
 * @ClassName	: WorkspaceFileResponse.java
 * @Description	: 워크스페이스 내 단일 파일 정보를 나타낸다.
@@ -19,6 +21,7 @@ public class WorkspaceFileResponse {
     private LocalDateTime lastModifiedAt;
     private String extension;
     private String absolutePath;
+    @JsonProperty("completed")
     private boolean isCompleted; // dev 폴더에 파일이 있으면 완료 상태
 
     public String getFolder() {

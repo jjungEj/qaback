@@ -3,6 +3,7 @@ package vaatz.stereotypesdb.qa.dto;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
 * @ClassName  : ResultSummaryResponse.java
@@ -21,6 +22,7 @@ public class ResultSummaryResponse {
     private String extension;
     private long fileSize;
     private LocalDateTime lastModifiedAt;
+    @JsonProperty("completed")
     private boolean isCompleted; // dev 폴더에 파일이 있으면 완료 상태
 
     public String getFileName() {
