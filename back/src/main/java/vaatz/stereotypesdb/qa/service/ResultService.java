@@ -39,54 +39,21 @@ public class ResultService {
     }
 
     public ResultPageResponse getResultPage(int page, int size) {
-        // before와 after 폴더의 파일을 모두 조회
-        WorkspaceFolderResponse beforePage = fileWorkspaceService.getFolderPage(
-                WorkspaceFolderType.BEFORE, 0, Integer.MAX_VALUE, null);
-        WorkspaceFolderResponse afterPage = fileWorkspaceService.getFolderPage(
-                WorkspaceFolderType.AFTER, 0, Integer.MAX_VALUE, null);
-
-        // 두 폴더의 파일을 합치고 수정일시 기준 내림차순 정렬
-        List<ResultSummaryResponse> allSummaries = new ArrayList<>();
-        allSummaries.addAll(beforePage.getFiles().stream()
-                .map(this::toSummary)
-                .collect(Collectors.toList()));
-        allSummaries.addAll(afterPage.getFiles().stream()
-                .map(this::toSummary)
-                .collect(Collectors.toList()));
-        
-        // 수정일시 기준 내림차순 정렬
-        allSummaries.sort((a, b) -> {
-            if (a.getLastModifiedAt() == null && b.getLastModifiedAt() == null) {
-                return 0;
-            }
-            if (a.getLastModifiedAt() == null) {
-                return 1;
-            }
-            if (b.getLastModifiedAt() == null) {
-                return -1;
-            }
-            return b.getLastModifiedAt().compareTo(a.getLastModifiedAt());
-        });
-
-        // 페이징 처리
-        int totalElements = allSummaries.size();
-        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
-        int safePage = totalPages == 0 ? 0 : Math.min(page, totalPages - 1);
-        int fromIndex = totalElements == 0 ? 0 : safePage * size;
-        int toIndex = totalElements == 0 ? 0 : Math.min(fromIndex + size, totalElements);
-        List<ResultSummaryResponse> pageContent = totalElements == 0
-                ? Collections.emptyList()
-                : new ArrayList<>(allSummaries.subList(fromIndex, toIndex));
+        WorkspaceFolderResponse folderPage = fileWorkspaceService.getFolderPage(
+                WorkspaceFolderType.BEFORE, page, size, null);
 
         ResultPageResponse response = new ResultPageResponse();
-        response.setContents(pageContent);
-        response.setPage(safePage);
-        response.setSize(size);
-        response.setTotalElements(totalElements);
-        response.setTotalPages(totalPages);
-        response.setHasPrevious(safePage > 0);
-        response.setHasNext(safePage < totalPages - 1);
-        response.setNavigationPages(buildNavigation(safePage, totalPages));
+        List<ResultSummaryResponse> summaries = folderPage.getFiles().stream()
+                .map(this::toSummary)
+                .collect(Collectors.toList());
+        response.setContents(summaries);
+        response.setPage(folderPage.getPage());
+        response.setSize(folderPage.getSize());
+        response.setTotalElements(folderPage.getTotalElements());
+        response.setTotalPages(folderPage.getTotalPages());
+        response.setHasPrevious(folderPage.getPage() > 0);
+        response.setHasNext(folderPage.getPage() < folderPage.getTotalPages() - 1);
+        response.setNavigationPages(buildNavigation(folderPage.getPage(), folderPage.getTotalPages()));
         return response;
     }
 
