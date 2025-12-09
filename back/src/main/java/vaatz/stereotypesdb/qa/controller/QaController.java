@@ -3,10 +3,14 @@ package vaatz.stereotypesdb.qa.controller;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.validation.Valid;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 import org.springframework.core.io.ByteArrayResource;
@@ -59,6 +63,7 @@ import vaatz.stereotypesdb.qa.util.JsonlConverter;
 public class QaController {
 
     private final FileWorkspaceService fileWorkspaceService;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public QaController(FileWorkspaceService fileWorkspaceService) {
         this.fileWorkspaceService = fileWorkspaceService;
@@ -157,6 +162,8 @@ public class QaController {
 
     /**
      * 수정된 HTML 테이블을 JSONL로 변환하고 after 폴더에 동일 파일을 저장한다.
+     * 저장된 파일 정보는 X-File-Info 헤더에 JSON 형식으로 포함된다.
+     * 프론트엔드에서 이 정보를 사용하여 파일 상태를 즉시 업데이트할 수 있다.
      */
     @PostMapping("/convert/jsonl") //HtmlUpdateRequest -> HtmlSheetsData 리스트로 변환
     public ResponseEntity<ByteArrayResource> convertToJsonl(@Valid @RequestBody HtmlUpdateRequest request) {
@@ -165,11 +172,28 @@ public class QaController {
         ByteArrayResource resource = new ByteArrayResource(jsonlBytes);
         //jsonl bytes, jsonlFileName 원본 파일
         String jsonlFileName = resolveJsonlFileName(request.getFileName());
-        fileWorkspaceService.saveJsonlToAfter(jsonlFileName, jsonlBytes);
-        ContentDisposition disposition = ContentDisposition.attachment().filename(jsonlFileName,StandardCharsets.UTF_8).build();  
+        WorkspaceFileResponse savedFile = fileWorkspaceService.saveJsonlToAfter(jsonlFileName, jsonlBytes);
+        ContentDisposition disposition = ContentDisposition.attachment().filename(jsonlFileName,StandardCharsets.UTF_8).build();
+        
+        // 파일 정보를 JSON으로 직렬화하여 헤더에 추가
+        // 프론트엔드에서 이 정보를 사용하여 파일 상태를 즉시 업데이트할 수 있음
+        String fileInfoJson;
+        try {
+            Map<String, Object> fileInfo = new LinkedHashMap<>();
+            fileInfo.put("fileName", savedFile.getFileName());
+            fileInfo.put("folder", savedFile.getFolder());
+            fileInfo.put("completed", savedFile.isCompleted());
+            fileInfo.put("fileSize", savedFile.getFileSize());
+            fileInfoJson = objectMapper.writeValueAsString(fileInfo);
+        } catch (JsonProcessingException e) {
+            // JSON 직렬화 실패 시 빈 문자열 반환 (파일 다운로드는 정상 동작)
+            fileInfoJson = "{}";
+        }
+        
         return ResponseEntity.ok() //Tomcat 한글 제목 인코딩 오류 수정
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION,disposition.toString())
+                .header("X-File-Info", fileInfoJson)
                 .contentLength(jsonlBytes.length)
                 .body(resource);
     }

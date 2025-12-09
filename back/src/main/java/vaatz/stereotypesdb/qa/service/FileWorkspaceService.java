@@ -186,14 +186,16 @@ public class FileWorkspaceService {
     }
 
     /**
-     * jsonl byte를 after 폴더에 기록
+     * jsonl byte를 after 폴더에 기록하고 파일 정보를 반환한다.
+     * 반환된 파일 정보에는 상태(completed)가 포함되어 있어 프론트엔드에서 즉시 업데이트할 수 있다.
      */
-    public void saveJsonlToAfter(String fileName, byte[] payload) {
+    public WorkspaceFileResponse saveJsonlToAfter(String fileName, byte[] payload) {
         String sanitized = sanitizeFileName(fileName);
         validateJsonlExtension(sanitized);
         Path target = folderPaths.get(WorkspaceFolderType.AFTER).resolve(sanitized);
         try {
             Files.write(target, payload, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            return toFileResponse(WorkspaceFolderType.AFTER, target);
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "JSONL 저장에 실패했습니다.", e);
         }
