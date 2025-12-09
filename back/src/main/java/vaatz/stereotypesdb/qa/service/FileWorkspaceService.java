@@ -327,6 +327,10 @@ public class FileWorkspaceService {
             boolean isCompleted = determineCompletionStatus(folderType, fileName);
             response.setCompleted(isCompleted);
             
+            // 상태 텍스트 설정
+            String statusText = determineStatusText(folderType, isCompleted);
+            response.setStatusText(statusText);
+            
             return response;
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 정보를 읽을 수 없습니다.", e);
@@ -352,6 +356,25 @@ public class FileWorkspaceService {
         // before/after 폴더의 파일은 dev 폴더에 파일이 있는지 확인
         // dev에 있으면 완료, 없으면 진행중/대기중
         return checkFileExistsInDev(fileName);
+    }
+
+    /**
+     * 폴더 타입과 완료 상태를 기준으로 상태 텍스트를 결정한다.
+     * 
+     * 상태 텍스트:
+     * - dev 폴더: "업로드 완료"
+     * - before 폴더: 완료 시 "수정 완료", 미완료 시 "수정 진행 중"
+     * - after 폴더: 완료 시 "업로드 완료", 미완료 시 "업로드 대기 중"
+     */
+    private String determineStatusText(WorkspaceFolderType folderType, boolean isCompleted) {
+        if (folderType == WorkspaceFolderType.DEV) {
+            return "업로드 완료";
+        } else if (folderType == WorkspaceFolderType.BEFORE) {
+            return isCompleted ? "수정 완료" : "수정 진행 중";
+        } else if (folderType == WorkspaceFolderType.AFTER) {
+            return isCompleted ? "업로드 완료" : "업로드 대기 중";
+        }
+        return "";
     }
 
     /**

@@ -183,10 +183,11 @@ public class QaController {
             fileInfo.put("fileName", savedFile.getFileName());
             fileInfo.put("folder", savedFile.getFolder());
             fileInfo.put("completed", savedFile.isCompleted());
+            fileInfo.put("statusText", savedFile.getStatusText());
             fileInfo.put("fileSize", savedFile.getFileSize());
             fileInfoJson = objectMapper.writeValueAsString(fileInfo);
         } catch (JsonProcessingException e) {
-            // JSON 직렬화 실패 시 빈 문자열 반환 (파일 다운로드는 정상 동작)
+            // JSON 직렬화 실패 시 빈 객체 반환 (파일 다운로드는 정상 동작)
             fileInfoJson = "{}";
         }
         

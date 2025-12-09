@@ -23,6 +23,7 @@ public class WorkspaceFileResponse {
     private String absolutePath;
     @JsonProperty("completed")
     private boolean isCompleted; // dev 폴더에 파일이 있으면 완료 상태
+    private String statusText; // 상태 텍스트 (예: "업로드 대기 중", "업로드 완료", "수정 진행 중" 등)
 
     public String getFolder() {
         return folder;
@@ -78,6 +79,14 @@ public class WorkspaceFileResponse {
 
     public void setCompleted(boolean completed) {
         isCompleted = completed;
+    }
+
+    public String getStatusText() {
+        return statusText;
+    }
+
+    public void setStatusText(String statusText) {
+        this.statusText = statusText;
     }
 }
 
